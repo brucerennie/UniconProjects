@@ -1,0 +1,342 @@
+########################################################################
+#                                                                      #
+# file : utf8.icn                                                      #
+#                                                                      #
+# Author : Bruce Rennie                                                #
+# Date   : 7-August-2013                                               #
+#                                                                      #
+# Purpose:  To provide a set of procedures for processing UTF8 streams #
+#           This set of routines is incomplete and will not handle     #
+#           other forms of Unicode encoding                            #
+#                                                                      #
+#                                                                      #
+# UTF-8 character encoding/decoding                                    #
+# The following has been taken from the following URL:                 #
+#                                                                      #
+#         http://en.wikipedia.org/wiki/UTF-8                           #
+#                                                                      #
+# The design of UTF-8 can be seen in this table of the scheme as       #
+# originally proposed by Dave Prosser and subsequently modified by Ken #
+# Thompson (the x's are replaced by the bits of the code point):       #
+#                                                                      #
+# Bits of     First       Last        Bytes in    Byte 1      Byte 2   #  
+# code point  code point  code point  sequence                         #
+#                                                                      #
+#     7       U+0000      U+007F          1       0xxxxxxx             #
+#     11      U+0080      U+07FF          2       110xxxxx    10xxxxxx #
+#     16      U+0800      U+FFFF          3       1110xxxx    10xxxxxx #   
+#     21      U+10000     U+1FFFFF        4       11110xxx    10xxxxxx #  
+#     26      U+200000    U+3FFFFFF       5       111110xx    10xxxxxx #   
+#     31      U+4000000   U+7FFFFFFF      6       1111110x    10xxxxxx #   
+#                                                                      #
+#             Byte 3      Byte 4      Byte 5      Byte 6               #
+#                                                                      #
+#     7                                                                #
+#     11                                                               #
+#     16      10xxxxxx                                                 #
+#     21      10xxxxxx    10xxxxxx                                     #
+#     26      10xxxxxx    10xxxxxx    10xxxxxx                         #
+#     31      10xxxxxx    10xxxxxx    10xxxxxx    10xxxxxx             #
+#                                                                      #
+# The original specification covered numbers up to 31 bits (the        #
+# original limit of the Universal Character Set). In November 2003     #
+# UTF-8 was restricted by RFC 3629 to end at U+10FFFF, in order to     #
+# match the constraints of the UTF-16 character encoding. This removed #
+# all 5- and 6-byte sequences, and about half of the 4-byte sequences. #
+#                                                                      #
+# The salient features of this scheme are as follows:                  #
+#                                                                      #
+#  One-byte codes are used only for the ASCII values 0 through 127.    #
+#  In this case the UTF-8 code has the same value as the ASCII code.   #
+#  The high-order bit of these codes is always 0.                      #                                                
+#  Code points larger than 127 are represented by multi-byte           #                                                             
+#  sequences, composed of a leading byte and one or more continuation  #                                                                      
+#  bytes. The leading byte has two or more high-order 1s followed by a #                                                                       
+#  0, while continuation bytes all have '10' in the high-order         #                                                              
+#  position.                                                           #           
+#                                                                      #
+#  The number of high-order 1s in the leading byte of a multi-byte     #                                                                  
+#  sequence indicates the number of bytes in the sequence, so that the #                                                                      
+#  length of the sequence can be determined without examining the      #                                                                 
+#  continuation bytes.                                                 #                     
+#                                                                      #
+#  The remaining bits of the encoding are used for the bits of the     #                                                                  
+#  code point being encoded, padded with high-order 0s if necessary.   #                                                                    
+#  The high-order bits go in the lead byte, lower-order bits in        #                                                               
+#  succeeding continuation bytes. The number of bytes in the encoding  #                                                                     
+#  is the minimum required to hold all the significant bits of the     #                                                                  
+#  code point.                                                         #             
+#                                                                      #
+#  Single bytes, leading bytes, and continuation bytes do not share    #                                                                   
+#  values. This makes the scheme self-synchronizing, allowing the      #                                                                 
+#  start of a character to be found by backing up at most five bytes   #                                                                    
+#  (three bytes in actual UTF‑8 as explained below).                   #                                                   
+#                                                                      #
+# The first 128 characters (US-ASCII) need one byte. The next 1,920    #                                                                   
+# characters need two bytes to encode. This covers the remainder of    #                                                                   
+# almost all Latin-derived alphabets, and also Greek, Cyrillic,        #                                                               
+# Coptic, Armenian, Hebrew, Arabic, Syriac and Tāna alphabets, as well #                                                                      
+# as Combining Diacritical Marks. Three bytes are needed for           #                                                            
+# characters in the rest of the Basic Multilingual Plane (which        #                                                               
+# contains virtually all characters in common use[12]). Four bytes are #                                                                      
+# needed for characters in the other planes of Unicode, which include  #                                                                     
+# less common CJK characters and various historic scripts and          #                                                             
+# mathematical symbols.                                                #                      
+#                                                                      #
+# Examples                                                             #         
+#                                                                      #
+# Let us consider how to encode the Euro sign, €.                      #                                                
+#                                                                      #
+#  The Unicode code point for "€" is U+20AC.                           #                                           
+#  According to the scheme table above, this will take three bytes to  #                                                                     
+#  encode, since it is between U+0800 and U+FFFF.                      #                                                
+#                                                                      #
+#  Hexadecimal 20AC is binary 0010000010101100. The two leading zeros  #                                                                     
+#  are added because, as the scheme table shows, a three-byte encoding #                                                                      
+#  needs exactly sixteen bits from the code point.                     #                                                 
+#                                                                      #
+#  Because it is a three-byte encoding, the leading byte starts with   #                                                                    
+#  three 1s, then a 0 (1110...)                                        #                              
+#                                                                      #
+#  The remaining bits of this byte are taken from the code point       #                                                                
+#  (11100010), leaving ...000010101100.                                #                                      
+#                                                                      #
+#  Each of the continuation bytes starts with 10 and takes six bits of #                                                                      
+#  the code point (so 10000010, then 10101100).                        #                                              
+#                                                                      #
+# The three bytes 11100010 10000010 10101100 can be more concisely     #                                                                 
+# written in hexadecimal, as E2 82 AC.                                 #                                    
+#                                                                      #
+# The following table summarises this conversion, as well as others    #                                                                   
+# with different lengths in UTF-8. The colors indicate how bits from   #                                                                    
+# the code point are distributed among the UTF-8 bytes. Additional     #                                                                  
+# bits added by the UTF-8 encoding process are shown in black.         #                                                             
+#                                                                      #
+# Character   Binary code     Binary      Hexadecimal                  #                                                     
+#             point           UTF-8       UTF-8                        #                                              
+#                                                                      #
+# $   U+0024  0100100         00100100        24                       #                                               
+#                                                                      #
+# ¢   U+00A2  000             11000010        C2 A2                    #                                                  
+#             10100010        10100010                                 #                                             
+#                                                                      #
+# €   U+20AC  00100000        11100010        E2 82 AC                 #                                                     
+#             10101100        10000010                                 #                                         
+#                             10101100                                 #                                         
+#                                                                      #
+# 𤭢 U+24B62 00010           11110000        F0 A4 AD A2              #                                                        
+#             01001011        10100100                                 #                                             
+#             01100010        10101101                                 #                                             
+#                             10100010                                 #                                     
+#                                                                      #
+########################################################################
+link ximage
+link hexcvt
+link trace
+
+ 
+
+global utf8sizetable, utf8limittable, utf8BOM, utf8counttable, utf8InvalidChar
+
+procedure utf8initialise()
+    local utf8char, i, charlist 
+    initial {
+        charlist := &cset || ""
+        #
+        # table holding code point sizes, continuation bytes marked as -1
+        # invalid bytes as 0
+        #
+        utf8sizetable := table()
+        every utf8sizetable[charlist[1 to 256]] := 0       # \x00 -> \xFF
+        every utf8sizetable[charlist[1 to 128]] := 1       # \x00 -> \x7F
+        every utf8sizetable[charlist[129 to 192]] := -1    # \x80 -> \xBF
+        every utf8sizetable[charlist[195 to 224]] := 2     # \xC2 -> \xDF
+        every utf8sizetable[charlist[225 to 240]] := 3     # \xE0 -> \xEF
+        every utf8sizetable[charlist[241 to 245]] := 4     # \xF0 -> \xF5
+        #
+        # used for counting utf8 characters in string
+        #
+        utf8counttable := table()
+        every utf8counttable[charlist[1 to 256]] := 0      # \x00 -> \xFF
+        every utf8counttable[charlist[1 to 128]] := 1      # \x00 -> \x7F
+        every utf8counttable[charlist[195 to 224]] := 1    # \xC2 -> \xDF
+        every utf8counttable[charlist[225 to 240]] := 1    # \xE0 -> \xEF
+        every utf8counttable[charlist[241 to 245]] := 1    # \xF0 -> \xF5
+        #
+        # used for validation of bytes found for utf8 character points
+        utf8limittable := table()
+        utf8limittable[1] := [["\x00", "\x7F"]]
+        utf8limittable[2] := [["\xC2", "\xDF"], ["\x80", "\xBF"]]
+        utf8limittable[3] := [["\xE0", "\xEF"], ["\x80", "\xBF"], ["\x80", "\xBF"]]
+        utf8limittable[4] := [["\xF0", "\xF5"], ["\x80", "\xBF"], ["\x80", "\xBF"], ["\x80", "\xBF"]]
+        #
+        # utf8 Byte Order Mark, optional value that can appear at start of
+        # utf8 file
+        #
+        utf8BOM := "\xEF\xBB\xBF"
+        utf8InvalidChar := "\xEF\xBF\xBD"
+        utf8debug()
+    }
+end
+ 
+procedure utf8BOMFound(str)
+    initial utf8initialise()
+    return str ? =utf8BOM 
+end
+
+procedure utf8skipBOM(str)
+    initial utf8initialise()
+    return str ? {
+                    =utf8BOM 
+                    tab(0)
+                }
+end
+
+procedure utf8size(str)
+    local i, cnt, char
+    initial utf8initialise()
+    cnt := 0
+    every cnt +:= utf8counttable[str[1 to *str]]
+    return cnt
+end
+
+procedure utf8valid(str)
+    local i, byte, valid, lowerbyte, upperbyte
+    local limits, j 
+    initial utf8initialise()
+    str ? {
+        utf8debugprint(str)
+        while not pos(0) do {
+            byte := move(1)
+            utf8debugprint(byte)
+            if (i := utf8sizetable[byte]) >= 1 then {
+                utf8debugprint("*:", i, ":*")
+                limits := utf8limittable[i]
+                utf8debugprint("l:", ximage(limits), ":l")
+                lowerbyte := limits[1, 1]
+                upperbyte := limits[1, 2]
+                if lowerbyte <<= byte <<= upperbyte then {
+                    valid := byte
+                    every j := 2 to i do {
+                        byte := move(1)
+                        lowerbyte := limits[j, 1]
+                        upperbyte := limits[j, 2]
+                        if not (lowerbyte <<= byte <<= upperbyte) then
+                            return fail
+                        else
+                            valid ||:= byte
+                    }
+                    utf8debugprint(valid)
+                    return valid
+                } else
+                    return fail
+            } else
+                return fail
+        }
+    }
+    return str
+end
+
+procedure utf8(str)
+    local i, j, codepoint
+    initial utf8initialise()
+    str ? {
+        while not pos(0) do {
+            codepoint := move(1)
+            utf8debugprint(codepoint)
+            codepoint ||:= move(1 <= (utf8sizetable[.codepoint] - 1))
+            utf8debugprint(codepoint)
+            suspend if utf8valid(codepoint) then codepoint else utf8InvalidChar
+        }
+    }
+end
+
+procedure utf8multibyte(codepoint)
+    utf8debugprint(codepoint)
+    if utf8size(codepoint) = 1 then {
+        return (utf8sizetable[codepoint[1]] > 1 & codepoint)
+    } else
+        return fail
+end
+
+global utf8debugprint
+
+procedure utf8debug(on)
+    if \on then
+        utf8debugprint := trace
+    else
+        utf8debugprint := 1
+end
+
+procedure utf8tounicode(codepoint)
+    local byte, bytecnt, i, val, valo
+    if uft8valid(codepoint) then {
+        bytecnt := utf8counttable[codepoint[1]]
+        case bytecnt of {
+            1 : val := iand(16r7f, byte)
+            2 : val := iand(16r1f, byte)
+            3 : val := iand(16rf, byte)
+            4 : val := iand(16r7, byte)
+            default : 0
+        }
+        every i := 2 to bytecnt do {
+            byte := ord(codepoint[i])
+            if iand(16rc0, byte) = 16rc0 then
+                val := ishift(val, 6) + iand(16r3ff, byte)
+        }
+        valo := hexstring(val,(bycnt < 4 | 5))
+        return "U+" || valo
+    } else
+        return fail
+end
+
+procedure unicodetouft8(unicode)
+    local byte, bycnt, i, val, valo
+    local c1, c2, c3, c4
+    unicode := map(unicode, &lcase, &ucase)
+    utf8debugprint(unicode)
+    unicode ? {
+        ="U+" &
+        val := tab(0) & {
+            utf8debugprint(val)
+            val := hex(val)
+            utf8debugprint(val)
+            if val < 16r80 then {
+                c1 := iand(16r7f, val)
+                utf8debugprint("val < 16r80:", hexstring(c1))
+                valo := char(c1)
+                utf8debugprint("val < 16r80:", valo)
+                utf8debugprint("val < 16r80:", val)
+            } else
+                if val < 16r800 then {
+                    c1 := ior(16rc0, ishift(iand(16r7c0, val), -6))
+                    c2 := ior(16r80, iand(16r3f, val))
+                    utf8debugprint("val < 16r80:", hexstring(c1), ":", hexstring(c2))
+                    valo := char(c1) || char(c2) 
+                    utf8debugprint("val < 16r800:", valo)
+                    utf8debugprint("val < 16r800:", val)
+                } else
+                    if val < 16r10000 then {
+                        c1 := ior(16re0, ishift(iand(16rf000, val), -12))
+                        c2 := ior(16r80, ishift(iand(16rfc0, val), -6))
+                        c3 := ior(16r80, iand(16r3f, val))
+                        utf8debugprint("val < 16r80:", hexstring(c1), ":", hexstring(c2), ":", hexstring(c3))
+                        valo := char(c1) || char(c2) || char(c3)
+                        utf8debugprint("val < 16r10000:", valo)
+                        utf8debugprint("val < 16r10000:", val)
+                    } else
+                        if val < 16r200000 then {
+                            c1 := ior(16rf0, ishift(iand(16r1c0000, val), -18))
+                            c2 := ior(16r80, ishift(iand(16r3f000, val), -12))
+                            c3 := ior(16r80,ishift(iand(16rfc0, val), -6))
+                            c4 := ior(16r80, iand(16r3f, val))
+                            utf8debugprint("val < 16r80:", hexstring(c1), ":", hexstring(c2), ":", hexstring(c3), ":", hexstring(c4))
+                            valo := char(c1) || char(c2) || char(c3) || char(c4)
+                            utf8debugprint("val < 16r20000:", valo)
+                            utf8debugprint("val < 16r20000:", val)
+                        } else
+                            return fail
+            return valo
+        }
+    }
+end

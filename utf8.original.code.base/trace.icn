@@ -1,0 +1,16 @@
+procedure functionname(level)
+    # The calling function is 1 level down unless called by trace
+    return image(proc(&current, \level | 1)) ? {="procedure "; return tab(0) }
+end
+
+procedure trace(message[])
+    local callingfunction := functionname(2), i := *message
+    local sz := *callingfunction + 1, j
+    write(&errout, callingfunction, ":")
+    every j := 1 to i do {
+        write(&errout, repl(" ", sz), message[j])
+    }
+    write(&errout, ":", reverse(callingfunction))
+end    
+
+ 

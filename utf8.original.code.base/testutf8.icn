@@ -1,0 +1,75 @@
+########################################################################
+#                                                                      #
+# file : testutf8.icn                                                  #
+#                                                                      #
+# Author : Bruce Rennie                                                #
+# Date   : 7-August-2013                                               #
+#                                                                      #
+# Purpose:  To provide some simple testing of the utf8 processing code #
+#           Testing is not extensive as yet                            #
+#                                                                      #
+########################################################################
+procedure main()
+    local fn, i, data := "", utf8chars := "", x
+    fn := open("utf8.icn", "r")
+
+    while data ||:= reads(fn, 1000)
+    write("length of file:", *data)
+    write("length of utf8 file:", utf8size(data))
+    
+    every x := utf8(data) do {
+        utf8chars ||:= utf8multibyte(x)
+        #write(x, " ", utf8chars)
+    }
+    write("multibyte uft8 chars:", utf8chars)
+    write(type(fn), ":", image(fn))
+    write(type(fn), ":", ximage(fn))
+    close(fn)
+    fn := open("test window", "g")
+    write(type(fn), ":", image(fn))
+    write(type(fn), ":", ximage(fn))
+    close(fn)
+    #stdfncdebug(1)
+    fn := open("test window", "gl")
+    write(type(fn), ":", image(fn))
+    write(type(fn), ":", ximage(fn))
+    close(fn)
+    fn := open("http://www.google.com.au", "m")
+    write(type(fn), ":", image(fn))
+    write(type(fn), ":", ximage(fn))
+    close(fn)
+    fn := open("uniclass", "d")
+    write(type(fn), ":", image(fn))
+    write(type(fn), ":", ximage(fn))
+    close(fn)
+    #utf8debug(1)
+    write(unicodetouft8("U+0024"))
+    write(unicodetouft8("U+00A2"))
+    write(unicodetouft8("U+20AC"))
+    write(unicodetouft8("U+24B62"))
+    #utf8debug()
+end
+
+procedure main2()
+    local tutf8chars := "\xEF\xBB\xBFabc"
+    if utf8BOMFound(tutf8chars) then
+        write(tutf8chars)
+    write(utf8skipBOM(tutf8chars))
+    tutf8chars := "def"
+    if utf8BOMFound(tutf8chars) then
+        write(tutf8chars)
+    write(utf8skipBOM(tutf8chars))
+    tutf8chars := "a\xEF\xBB\xBFdef"
+    if utf8BOMFound(tutf8chars) then
+        write(tutf8chars)
+    write(utf8skipBOM(tutf8chars))
+end
+
+link utf8
+ 
+#link stdfnc
+
+procedure openx(x1, x2, x3[])
+    local o := proc("open", 0)
+    return o ! ([x1] ||| [x2] ||| x3)
+end
