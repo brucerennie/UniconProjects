@@ -1,0 +1,6 @@
+rm uniclass.*
+unicon -c -u runtimeerrors
+unicon -c -u utilities
+unicon -c -u errorsystem
+unicon -c -u classobject
+unicon -c -u utf8
