@@ -1,0 +1,454 @@
+################################################################################
+File:
+abkform.icn
+********************************************************************************
+Description:
+Procedures set to read and write HP95LX appointment book (.abk) files.
+********************************************************************************
+Additional Notes:
+1. Files created by the Appointment Book application may contain some padding following the last field of some data records.  Hence, the RecordLength field must be used to determine the start of the next record.  Appointment book files created by other programs need not have any padding.
+
+2. ApptState has several bit fields.  Only bit 0 is meaningful to software processing an appointment book file.  Bit 0 being set or cleared corresponds to the alarm being enabled or disabled, respectively. Programs creating Appointment book files should clear all bits, except perhaps bit 0.
+
+3. ToDoState has two one-bit bit fields.  Bit 0 being set or cleared corresponds to carry forward being enabled or disabled for this todo item, respectively.  Bit 1 being set or cleared corresponds to the todo being checked off or not checked off, respectively.
+
+4. Appointment and ToDo texts are each limited to a maximum of 27 characters.
+
+5. Note text is limited to a maximum of 11 lines of 39 characters per line (not counting the line terminator).
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book File Format
+The HP 95LX Appointment Book file is structured as a file-identification record, followed by a settings record, followed by a variable number of data records, and terminated by an end-of-file record. There are multiple types of data records corresponding to the different types of appointment book entries.
+
+The formats of these appointment book records is described in the following tables. In the descriptions, the type <int> refers to a two-byte integer stored least significant byte first, the type <swpint> refers to a two-byte integer stored most significant byte first, the type <char> refers to a one-byte integer, and the type <ASCII> refers to a string of ASCII characters.
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book File Identification Record:
+Byte Offset      Name            Type     Contents
+
+0                ProductCode     int      -1 (FFh, FFh)
+2                ReleaseNum      int      1 (01h, 00h)
+4                FileType        char     1 (01h)
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book Settings Record:
+Byte Offset      Name            Type     Contents
+
+0                StartTime       int      Daily display start time as the number of minutes past midnight.
+2                Granularity     int      Daily display time line granularity in minutes.
+4                AlarmEnable     char     1 = on, 0 = off
+5                LeadTime        char     Alarm default lead time in minutes.
+6                CarryForward    char     To do carry forward default, 1 = on, 0 = off.
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book Daily Data Record:
+Byte Offset      Name            Type     Contents
+
+0                RecordType      char     1 (01h)
+1                RecordLength    int      Number of bytes in remainder of this data record, see note 1 below.
+3                ApptState       char     See note 2 below.
+4                Year            char     Year counting from 1900.
+5                Month           char     Month, 1 - 12.
+6                Day             char     Day, 1 - 31.
+7                StartTime       swpint   Start time in minutes since midnight.
+9                EndTime         int      End time in minutes since midnight.
+11               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+12               ApptLength      char     Length of appointment text in bytes.
+13               NoteLength      int      Length of note text in bytes.
+15               ApptText        ASCII    Appointment text - see note 4 below.
+15+ApptLength    NoteText        ASCII    Note text where the null character is used as the line terminator - see note 5.
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book Weekly Data Record:
+Byte Offset      Name            Type     Contents
+
+0                RecordType      char     2 (02h)
+1                RecordLength    int      Number of bytes in remainder of this data record, see note 1 below.
+3                ApptState       char     See note 2 below.
+4                DayOfWeek       char     Day of week, 1=Sun, ..., 7=Sat.
+5                StartTime       swpint   Start time in minutes since midnight.
+7                StartYear       char     Start year counting from 1900.
+8                StartMonth      char     Start month, 1 - 12.
+9                StartDay        char     Start day, 1 - 31.
+10               EndTime         int      End time in minutes since midnight.
+12               EndYear         char     End year counting from 1900.
+13               EndMonth        char     End month, 1 - 12.
+14               EndDay          char     End day, 1 - 31.
+15               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+16               ApptLength      char     Length of appointment text in bytes.
+17               NoteLength      int      Length of note text in bytes.
+19               ApptText        ASCII    Appointment text - see note 4 below.
+19+ApptLength    NoteText        ASCII    Note text where the null character is used as the line terminator - see note 5 below.
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book Monthly by Date Data Record:
+Byte Offset      Name            Type     Contents
+
+0                RecordType      char     3 (03h)
+1                RecordLength    int      Number of bytes in remainder of this data record, see note 1 below.
+3                ApptState       char     See note 2 below.
+4                DayOfMonth      char     Day of month, 1 - 31.
+5                StartTime       swpint   Start time in minutes since midnight.
+7                StartYear       char     Start year counting from 1900.
+8                StartMonth      char     Start month, 1 - 12.
+9                StartDay        char     Start day, 1 - 31.
+10               EndTime         int      End time in minutes since midnight.
+12               EndYear         char     End year counting from 1900.
+13               EndMonth        char     End month, 1 - 12.
+14               EndDay          char     End day, 1 - 31.
+15               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+16               ApptLength      char     Length of appointment text in bytes.
+17               NoteLength      int      Length of note text in bytes.
+19               ApptText        ASCII    Appointment text - see note 4 below.
+19+ApptLength    NoteText        ASCII    Note text where the null character is used as the line terminator - see note 5 below.
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book Monthly by Position Data Record:
+Byte Offset      Name            Type     Contents
+
+0                RecordType      char     4 (04h)
+1                RecordLength    int      Number of bytes in remainder of this data record, see note 1 below.
+3                ApptState       char     See note 2 below.
+4                WeekOfMonth     char     Week of month, 1 - 5.
+5                DayOfWeek       char     Day of week, 1=Sun, ..., 7=Sat.
+6                StartTime       swpint   Start time in minutes since midnight.
+8                StartYear       char     Start year counting from 1900.
+9                StartMonth      char     Start month, 1 - 12.
+10               StartDay        char     Start day, 1 - 31.
+11               EndTime         int      End time in minutes since midnight.
+13               EndYear         char     End year counting from 1900.
+14               EndMonth        char     End month, 1 - 12.
+15               EndDay          char     End day, 1 - 31.
+16               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+17               ApptLength      char     Length of appointment text in bytes.
+18               NoteLength      int      Length of note text in bytes.
+20               ApptText        ASCII    Appointment text - see note 4 below.
+20+ApptLength    NoteText        ASCII    Note text where the null character is used as the line terminator - see note 5 below.
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book Yearly Data Record:
+Byte Offset      Name            Type     Contents
+
+0                RecordType      char     5 (05h)
+1                RecordLength    int      Number of bytes in remainder of this data record, see note 1 below.
+3                ApptState       char     See note 2 below.
+4                MonthOfYear     char     Month of year, 1=Jan, ... 12=Dec.
+5                DayOfMonth      char     Day of month, 1 - 31.
+6                StartTime       swpint   Start time in minutes since midnight.
+8                StartYear       char     Start year counting from 1900.
+9                StartMonth      char     Start month, 1 - 12.
+10               StartDay        char     Start day, 1 - 31.
+11               EndTime         int      End time in minutes since midnight.
+13               EndYear         char     End year counting from 1900.
+14               EndMonth        char     End month, 1 - 12.
+15               EndDay          char     End day, 1 - 31.
+16               LeadTime        char     Alarm lead time in minutes, 0 - 30.
+17               ApptLength      char     Length of appointment text in bytes.
+18               NoteLength      int      Length of note text in bytes.
+20               ApptText        ASCII    Appointment text - see note 4 below.
+20+ApptLength    NoteText        ASCII    Note text where the null character is used as the line terminator - see note 5 below.
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book To Do Data Record:
+Byte Offset      Name            Type     Contents
+
+0                RecordType      char     6 (06h)
+1                RecordLength    int      Number of bytes in remainder of this data record, see note 1 below.
+3                ToDoState       char     See note 3 below.
+4                Priority        char     Priority, 1 - 9.
+5                StartYear       char     Start year counting from 1900.
+6                StartMonth      char     Start month, 1 - 12.
+7                StartDay        char     Start day, 1 - 31.
+8                CheckOffYear    char     Check off year counting from 1900, 0 indicates not checked off.
+9                CheckOffMonth   char     Check off month, 1 - 12, 0 indicates not checked off.
+10               CheckOffDay     char     Check off day, 1 - 31, 0 indicates not checked off.
+11               ToDoLength      char     Length of to do text in bytes.
+12               NoteLength      int      Length of note text in bytes.
+14               ToDoText        ASCII    To do text - see note 4 below.
+14+ToDoLength    NoteText        ASCII    Note text where the null character is used as the line terminator - see note 5 below.
+--------------------------------------------------------------------------------
+Section:
+HP 95LX Appointment Book End of File Record:
+Byte Offset      Name            Type     Contents
+0                RecordType      char     50 (32h)
+1                RecordLength    int      0 (00h, 00h)
+################################################################################
+File:
+adjuncts.icn
+********************************************************************************
+Description:
+Procedures for gettext and idxtext
+********************************************************************************
+Additional Notes:
+Pretty mundane stuff. Set_OS(), Basename(), Pathname(), Strip(), and a utility for creating index filenames.
+################################################################################
+File:
+adlutils.icn
+********************************************************************************
+Description:
+Procedures to process address lists
+********************************************************************************
+Additional Notes:
+Procedures used by programs that process address lists:
+
+         nextadd()              get next address
+         writeadd(add)          write address
+         get_country(add)       get country
+         get_state(add)         get state (U.S. addresses only)
+         get_city(add)          get city (U.S. addresses only)
+         get_zipcode(add)       get ZIP code (U.S. addresses only)
+         get_lastname(add)      get last name
+         get_namepfx(add)       get name prefix
+         get_title(add)         get name title
+         format_country(s)      format country name
+################################################################################
+File:
+allof.icn
+********************************************************************************
+Description:
+Procedure for conjunction control operation
+********************************************************************************
+Additional Notes:
+allof{expr1,expr2} -- Control operation that performs iterative conjunction.
+
+Iterative conjunction permits a conjunction expression to be built at run time which supports full backtracking among the created terms of the expression.  The computed expression can be of arbitrary length, and is built via an iterative loop in which one term is appended to the expression (as if connected with a "&" operator) per iteration.
+
+Expr1 works like the control expression of "every-do"; it controls iteration by being resumed to produce all of its possible results. The allof{} expression produces the outcome of conjunction of all of the resulting instances of expr2.
+
+For example:
+
+       global c
+       ...
+       pattern := "ab*"
+       "abcdef" ? {
+          allof { c := !pattern ,
+             if c == "*" then move(0 to *&subject - &pos + 1) else =c
+             } & pos(0)
+          }
+
+This example will perform a wild card match on "abcdef" against pattern "ab*", where "*" in a pattern matches 0 or more characters. Since pos(0) will fail the first time it is evaluated, the allof{} expression will be resumed just as a conjunction expression would, and backtracking will propagate through all of the instances of expr2; the expression will ultimately succeed (as its conjunctive equivalent would).
+
+Note that, due to the scope of variables in co-expressions, variables shared between expr1 and expr2 must have global scope, hence c in the above example must be global.
+
+The allof{} procedure models Icon's expression evaluation mechanism in that it explicitly performs backtracking. The author of this procedure knows of no way to invoke Icon's built-in goal directed evaluation to perform conjunction of a arbitrary number of computed expressions (suggestions welcome).
+################################################################################
+File:
+allpat.icn
+********************************************************************************
+Description:
+Procedure to produce all n-character patterns of characters
+################################################################################
+File:
+ansi.icn
+********************************************************************************
+Description:
+Procedures for ANSI-based terminal control
+********************************************************************************
+Additional Notes:
+This package of procedures implements a subset of the ANSI terminal control sequences.  The names of the procedures are taken directly from the ANSI names.  If it is necessary to use these routines with non-ANSI devices, link in iolib.icn, and (optionally) iscreen.icn as well.  Use will be made of whatever routines are made available via either of these libraries.  Be careful of naming conflicts if you link in iscreen.icn. It contains procedures like "clear" and "boldface."
+
+        CUB(i)         Moves the cursor left i columns
+        CUD(i)         Moves the cursor down i rows
+        CUF(i)         Moves the cursor right i columns
+        CUP(i,j)       Moves the cursor to row i, column j
+        CUU(i)         Moves the cursor up i rows
+        ED(i)          Erases screen: i = 0, cursor to end; i = 1, beginning to cursor; i = 2, all (default 2)
+        EL(i)          Erases data in cursor row: i = 0, cursor to end; i = 1, beginning to cursor; i = 2, all (default 0)
+        SGR(i)         Sets video attributes: 0 = off; 1 = bold; 4 = underscore; 5 = blink; 7 = reverse (default 0)
+
+Note that not all so-called ANSI terminals support every ANSI screen control sequence - not even the limited subset included in this file.
+
+If you plan on using these routines with non-ANSI magic-cookie terminals (e.g. a Wyse-50) then it is strongly recommended that you link in iolib or itlib *and* iscreen (not just iolib or itlib by itself).  The routines WILL WORK with most magic cookie terminals; they just don't always get all the modes displayed (because they are basically too busy erasing the cookies).
+********************************************************************************
+Detail Description:
+For DOS, or any system using ANSI-conformant output devices, there is no need to link any routines in.
+
+For UNIX systems, you may choose to link in itlib or iolib, and (if desired) iscreen as well.  Some of these may be in the IPL.  You can get any that aren't from Richard Goerwitz (goer@sophist.uchicago.edu).
+################################################################################
+File:
+apply.icn
+********************************************************************************
+Description:
+Procedure to apply a list of functions to an argument
+********************************************************************************
+Additional Notes:
+This procedure applies a list of functions to an argument.  An example is
+
+        apply([integer, log], 10)
+
+which is equivalent to integer(log(10)).
+################################################################################
+File:
+argparse.icn
+********************************************************************************
+Description:
+Procedure to parse pseudo-command-line
+********************************************************************************
+Additional Notes:
+argparse(s) parses s as if it were a command line and puts the components in in a list, which is returned.
+
+At present, it does not accept any escape conventions.
+################################################################################
+File:
+array.icn
+********************************************************************************
+Description:
+Procedures for n-dimensional arrays
+********************************************************************************
+Additional Notes:
+create_array([lbs], [ubs], value) creates a n-dimensional array with the specified lower bounds, upper bounds, and with each array element having the specified initial value.
+
+ref_array(A, i1, i2, ...) references the i1-th i2-th ... element of A.
+################################################################################
+File:
+array.icn
+********************************************************************************
+Description:
+Procedures for n-dimensional arrays
+********************************************************************************
+Additional Notes:
+create_array([lbs], [ubs], value) creates a n-dimensional array with the specified lower bounds, upper bounds, and with each array element having the specified initial value.
+
+ref_array(A, i1, i2, ...) references the i1-th i2-th ... element of A.
+################################################################################
+File:
+asciinam.icn
+********************************************************************************
+Description:
+Procedure for ASCII name of unprintable character
+********************************************************************************
+Additional Notes:
+asciiname(s) returns the mnemonic name of the single unprintable ASCII character s.
+################################################################################
+File:
+base64.icn
+********************************************************************************
+Description:
+Procedures for base64 encodings for MIME (RFC 2045)
+********************************************************************************
+Additional Notes:
+base64encode( s1 ) : s2
+
+   returns the base64 encoding of a string s1
+
+base64decode( s1 ) : s2
+
+   returns the base64 decoding of a string s1 fails if s1 isn't base64 encoded
+
+references:  MIME encoding Internet RFC 2045
+################################################################################
+File:
+basename.icn
+********************************************************************************
+Description:
+Procedure to produce base name of file
+********************************************************************************
+Additional Notes:
+This procedure is based on the UNIX basename(1) utility. It strips off any path information and removes the specified suffix, if present.
+
+It should work under UNIX, MS-DOS, and the Macintosh.
+################################################################################
+File:
+binary.icn
+********************************************************************************
+Description:
+Procedures to pack and unpack values
+********************************************************************************
+Additional Notes:
+This is a collection of procedures that support conversion of Icon data elements to and from binary data formats.  The purpose is to facilitate dealing with binary data files.
+
+The procedures can be used individually or via the "control" procedures pack() and unpack().
+
+The individual conversion functions are prefixed by either "pack_" or "unpack_" and are identified in comments by their format character(s). The "pack_" procedures convert from Icon to binary and take a single argument:  the value to be converted.  The "unpack_" procedures convert from binary to Icon and usually take no parameters -- they are executed within a string-scanning context and scan the necessary amount from the &subject string.  Some of the "unpack_" functions take a parameter that specifies the length of the output string.  The individual conversion procedures are minimally commented, but their action is apparent from their procedure names and the documentation of the pack() and unpack() procedures.
+
+The control procedures pack() and unpack() take a format string that controls conversions of several values (similar to the "printf" C library function).  pack() and unpack() are patterned after the Perl (programming language) functions of the same names, and are documented below.
+
+pack(template,value1,...) : packed_binary_string
+------------------------------------------------
+
+This procedure packs the "values" into a binary structure, returning the string containing the structure.  The elements of any lists in the "value" parameters are processed individually as if they were "spliced" into the "value" parameter list.  The "template" is a sequence of characters that give the order and type of values, as follows" (using C language terminology):
+
+  a     An ascii string, will be null padded (unstripped for unpack()).
+  A     An ascii string, will be space padded (trailing nulls and spaces will be stripped for unpack()).
+  b     A bit string, low-to-high order.
+  B     A bit string, high-to-low order.
+  h     A hexadecimal string, low-nybble-first.
+  H     A hexadecimal string, high-nybble-first.
+  c     A signed char value.
+  C     An unsigned char value.
+  s     A signed short value.
+  S     An unsigned short value.
+  i     A signed int value.
+  I     An unsigned int value.
+  l     A signed long value.
+  L     An unsigned long value.
+  n     A short in "network" order (big-endian).
+  N     A long in "network" order (big-endian).
+  v     A short in "vax" order (little-endian).
+  V     A long in "vax" order (little-endian).
+  f     A single-precision float in IEEE Motorola format.
+  d     A double-precision float in IEEE Motorola format.
+  e     An extended-precision float in IEEE Motorola format 80-bit.
+  E     An extended-precision float in IEEE Motorola format 96-bit.
+  x     Skip forward a byte (null-fill for pack()).
+  X     Back up a byte.
+  @     Go to absolute position (null-fill if necessary for pack()).
+  u     A uu-encoded/decoded string.
+
+Each letter may optionally be followed by a number which gives a count.  Together the letter and the count make a field specifier. Letters and numbers can be separated by white space which will be ignored.  Types A, a, B, b, H, and h consume one value from the "value" list and produce a string of the length given as the field-specifier-count.  The other types consume "field-specifier-count" values from the "value" list and append the appropriate data to the packed string.
+
+unpack(template,string) : value_list
+------------------------------------
+
+This procedure does the reverse of pack():  it takes a string representing a structure and expands it out into a list of values. The template has mostly the same format as for pack() -- see pack(), above.
+
+Endianicity of integers
+-----------------------
+
+Integer values can be packed and unpacked in either big-endian (Motorola) or little-endian (Intel) order.  The default is big-endian. Procedures pack_little_endian() and pack_big_endian() set the mode for future packs and unpacks.
+
+Size of ints
+------------
+
+The "i" (signed int) and "I" (unsigned int) types can pack and unpack either 16-bit or 32-bit values.  32-bit is the default.  Procedures pack_int_as_short() and pack_int_as_long() change the mode for future packs and unpacks.
+
+To Do List
+
+ - implement other-endian versions of floats (only big-endian supported now).
+
+Procedures for converting real values from input streams. These procedures accept standard IEEE floating point values as strings, usually as read from a file, and return their numeric equivalent as a "real".  The degree of accuracy is likely to vary with different implementations of Icon.
+
+Requires large integers.
+
+Parameter                       Float       Double      Extended    Extended96
+=================================================================
+Size (bytes:bits)               4:32        8:64        10:80       12:96
+
+Range of binary exponents
+  Minimum                      -126        -1022       -16383      -16383
+  Maximum                      +127        +1023       +16383      +16383
+  Exponent width in bits        8           11          15          15
+  Exponent bias                +127        +1023       +16383      +16383
+
+Significand precision
+  Bits                          24          53          64          64
+  Decimal digits                7-8         15-16       18-19       18-19
+
+Decimal range approximate
+  Maximum positive              3.4E+38     1.7E+308    1.1E+4932
+  Minimum positive norm         1.2E-38     2.3E-308    1.7E-4932
+  Minimum positive denorm       1.5E-45     5.0E-324    1.9E-4951
+  Maximum negative denorm      -1.5E-45    -5.0E-324   -1.9E-4951
+  Maximum negative norm        -1.2E-38    -2.3E-308   -1.7E-4932
+  Minimum negative             -3.4E+38    -1.7E+308   -1.1E+4932
+################################################################################
+
+
+
+
+
+
+
+
