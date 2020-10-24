@@ -536,6 +536,7 @@ Procedures to read and write strings of bits in files
 ********************************************************************************
 Additional Notes:
 Procedures for reading and writing integer values made up of an arbitrary number of bits, stored without regard to character boundaries.
+********************************************************************************
 Detail Description:
 --------------------------------------------------------------------------------
 Section:
@@ -562,6 +563,275 @@ Usage of BitStreamRead, by example:
 BitStringRead fails when too few bits remain to satisfy a request.
 
 See also: bitstr.icn
+################################################################################
+File:
+bkutil.icn
+********************************************************************************
+Description:
+Procedures for HP95LX phone books and appointment books
+********************************************************************************
+Additional Notes:
+Utility procedures for HP95LX phone book and appointment book processing.
+
+See also: abkform.icn, pbkform.icn
+################################################################################
+File:
+bold.icn
+********************************************************************************
+Description:
+Procedures to enbolden and underscore text
+********************************************************************************
+Additional Notes:
+These procedures produce text with interspersed characters suitable for printing to produce the effect of boldface (by over-striking) and underscoring (using backspaces).
+
+       bold(s)        bold version of s
+
+       uscore(s)      underscored version of s
+################################################################################
+File:
+bufread.icn
+********************************************************************************
+Description:
+Procedures for buffered read and lookahead
+********************************************************************************
+Additional Notes:
+Synopsis:
+
+       bufopen(s)      Open a file name s for buffered read and lookahead
+       bufread(f)      Read the next line from file f
+       bufnext(f, n)   Return the next nth record from file f without changing the next record to be read by bufread
+       bufclose(f)     Close file f
+
+These procedures provide a mechanism for looking ahead an arbitrary number of records in an open file while still keeping track of the logical current record and end-of-file. Although similar in intent to the procedures in buffer.icn, these procedures are used differently.  The procedures bufopen, bufread, and bufclose were designed to closely mirror the built-in open, read, and close.
+
+A code segment like
+
+           file := open("name", "r") | stop("open failed")
+           while line := read(file) do {
+               ...process current line...
+           }
+           close(file)
+
+can be changed to the following with no difference in behavior:
+
+           file := bufopen("name", "r") | stop("open failed")
+           while line := bufread(file) do {
+               ...process current line...
+           }
+           bufclose(file)
+
+However in addition to processing the current line, one may also process subsequent lines BEFORE they are logically read:
+
+           file := bufopen("name", "r") | stop("open failed")
+           while line := bufread(file) do {
+               ...process current line...
+               line := bufnext(file,1) # return next line
+               ...process next line...
+               line := bufnext(file,2) # return 2nd next line
+               ...process 2nd next line...
+               ...etc...
+           }
+           bufclose(file)
+
+In the code above, calls to bufnext do not affect the results of subsequent bufread's.  The bufread procedure always steps through the input file a line at a time without skipping lines whether or not bufnext is called.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+bufopen(s)
+
+Produces a file resulting from opening s for reading ("r" option), but fails if the file cannot be opened.  if s is missing or the value of s is &null, then standard input is opened and &input is returned.  Unlike the Icon open function, bufopen() can and must be called prior to any call to bufread or bufnext involving standard input.  Unlike named files, only one buffered standard input may be open at any given time.
+
+Default:
+   s   &null   (indicates &input should be opened for buffered reading)
+
+Errors (from open):
+   103     s not string
+
+Errors (new):
+   Attempt to open standard input when currently open
+--------------------------------------------------------------------------------
+Section:
+bufread(f)
+
+Produces a string consisting of the next line from f, but fails on end of file. Calls to bufnext do not affect the results of subsequent bufread's. The procedure bufread always steps through a file a line at a time without skipping lines. The procedure bufread fails when a logical end of file is reached, i.e., when the physical end of file has been reached AND the internal buffer is empty.
+
+Default:
+   f   &input
+
+Errors:
+   f is not a file
+   f not opened for buffered reads (includes &input)
+--------------------------------------------------------------------------------
+Section:
+bufnext(f, n)
+
+Produces a string consisting of the nth next line from f after the current line. It fails when the physical end of file has been reached.
+
+Default:
+   f   &input
+   n   1 (the next line after the current one)
+
+Errors:
+   f is not a file
+   f not opened for buffered reads (includes &input)
+   n not convertible to integer
+   n not positive
+--------------------------------------------------------------------------------
+Section:
+bufclose(f)
+
+Produces f after closing it.  Standard input must be closed before it can be reopened using bufopen. If standard input is closed, all lines read using bufnext are lost when it is reopened. In general, there is no practical reason to bufclose and then bufopen standard input. One may want to bufclose standard input to release its internal buffer for garbage collection.
+
+Default:
+   f   &input
+
+Errors (from close):
+   105     f not file
+################################################################################
+File:
+calendar.icn
+********************************************************************************
+Description:
+Procedures for data and time calculation and conversion
+********************************************************************************
+Additional Notes:
+Procedures in this file supercede several procedures in datetime.icn.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+Setting up
+
+You will probably want to set a platform environment variable "Cal_TimeZone" to an appropriate local time zone ID string before using this library. Look at the time zone data at the end of this source file and choose an ID for your locale. Common ones for USA are "PST", "MST", "CST", and "EST", although there are more specific ones such as "America/Arizona" that handle special rules. If environment variables are not supported for your platform or your implementation of Icon, explicitly specify the default time zone in your program: e.g.
+
+       Cal_CurrentTimeZone := Cal_GetTimeZone("PST").
+
+If your system uses a base year for date calculation that is different from 1970, your can specify it in an environment variable "Cal_DateBaseYear" or set it directly in the global variable by the same name. Unix and Windows use the library's default value of 1970, but Macintosh used to use 1984 (I'm not sure if Apple have yet seen fit to conform to the 1970 quasi-standard). This setting doesn't matter unless you want your "seconds" values to be the same as your system's.
+--------------------------------------------------------------------------------
+Section:
+GMT and local time
+
+GMT (Greenwich Mean Time) is a universal time standard (virtually equivalent to "Coordinated Universal Time" (UTC), except for some millisecond differences).
+--------------------------------------------------------------------------------
+Section:
+Time forms
+
+There are two fundamental date/time forms supported by this library: a form in which computation is easy (the "seconds" form) and a form in which formatting is easy (the "calendar record" form).
+
+    - Seconds -- the time is be represented as an integer that is the number of seconds relative to the beginning of Cal_DateBaseYear, GMT. Cal_DateBaseYear is usually 1970, but can be changed). The "seconds" form is a universal time, independent of locale.
+
+    - Cal_Rec -- a "calendar record", which has fields for date and time components: year, month, day, hour, minutes, seconds and day-of-week. The "Cal_Rec" form is usually in terms of local time, including accounting for daylight savings time according to local rules.
+--------------------------------------------------------------------------------
+Section:
+Notes
+
+    - Several procedures have a final "timeZone" parameter. In those procedures the timeZone parameter is optional and, if omitted, Cal_CurrentTimeZone is used.
+
+    - The time zone table and list consume around 30KB that can be "freed" by setting both Cal_TimeZoneTable and Cal_TimeZoneList to &null. Procedures Cal_GetTimeZoneTable() and Cal_GetTimeZoneList() will re-create the structures and assign them back to their globals. For many applications, those structures are no longer needed after program initialization.
+
+    - The global variables are automatically initialized by the Cal_ procedures. However, if you want to use the globals before using any procedures, they must be explicitly initialized by calling Cal_Init().
+
+    - Time zone records in the time zone structures should be viewed as read-only. If you want to make temporary changes to the fields, copy() the time zone record.
+--------------------------------------------------------------------------------
+Section:
+Global variables
+
+The following global variables are useful in date and time operations (R/O means please don't change it):
+
+    - Cal_SecPerMin	- (R/O) Seconds per minute.
+    - Cal_SecPerHour	- (R/O) Seconds per hour.
+    - Cal_SecPerDay	- (R/O) Seconds per day.
+    - Cal_SecPerWeek	- (R/O) Seconds per week.
+    - Cal_MonthNames	- (R/O) List of month names.
+    - Cal_DayNames	- (R/O) List of day names.
+    - Cal_CurrentTimeZone	- Current default time zone record -- can be changed at any time. Initialized to the time zone whose ID is in environment variable "Cal_TimeZone" if set, or to GMT.
+    - Cal_TimeZoneGMT	- (R/O) The GMT time zone record. Can be used as a timeZone parameter to "turn off" conversion to or from local.
+    - Cal_DateBaseYear - The base year from which the "seconds" form is calculated, initialized to the value of environment variable "Cal_DateBaseYear" if set, or 1970 (the year used by both Unix and MS-Windows)
+    - Cal_TimeZoneTable - A table of time zones keyed by the time zone's ID string
+    - Cal_TimeZoneList - A list of time zones ordered by increasing offset from GMT
+--------------------------------------------------------------------------------
+Section:
+Initialization procedure
+
+    Cal_Init()
+        Initializes global variables. Called implicitly by the Cal_ procedures.
+--------------------------------------------------------------------------------
+Section:
+Cal_Rec (calendar record) procedures
+
+    Cal_Rec(year,month,day,hour,min,sec,weekday)
+        Cal_Rec record constructor. All values are integers in customary US usage (months are 1-12, weekdays are 1-7 with 1 -> Sunday)
+
+    Cal_SecToRec(seconds,timeZone)
+        Converts seconds to a Cal_Rec, applying conversion rules of "timeZone". To suppress conversion, specify timeZone = Cal_TimeZoneGMT.
+
+    Cal_RecToSec(calRec,timeZone)
+        Converts a Cal_Rec to seconds, applying conversion rules of "timeZone". To suppress conversion, specify timeZone = Cal_TimeZoneGMT.
+--------------------------------------------------------------------------------
+Section:
+Time zone procedures
+
+    Cal_GetTimeZone(timeZoneName)
+        Gets a time zone given a time zone ID string. Fails if a time zone for the given ID cannot be produced.
+
+    Cal_GetTimeZoneList()
+        Returns the tine zone list that is the value of Cal_TimeZoneList, unless that global has been explicitly set to &null. If the global is null, a new list is built, assigned to Cal_TimeZoneList, and returned.
+
+    Cal_GetTimeZoneTable()
+        Returns the tine zone table that is the value of Cal_TimeZoneTable, unless that global has been explicitly set to &null. If the global is null, a new table is built, assigned to Cal_TimeZoneTable, and returned. In building the table, Cal_GetTimeZoneList() is called so global variable Cal_TimeZoneList is also set.
+--------------------------------------------------------------------------------
+Section:
+Date/time calculation procedures
+
+    Cal_LocalToGMTSec(seconds,timeZone)
+        Converts seconds from local to GMT using the rules of timeZone.
+
+    Cal_GMTToLocalSec(seconds,timeZone)
+        Converts seconds from GMT to local using the rules of timeZone.
+
+    Cal_IsLeapYear(year)
+        Returns the number of seconds in a day if year is a leap year, otherwise fails.
+
+    Cal_LeapYearsBetween(loYear,hiYear)
+        Returns the count of leap years in the range of years n where loYear <= n < hiYear.
+
+    Cal_IsDST(seconds,timeZone)
+        Returns the DST offset in hours if seconds (local time) is in the DST period, otherwise fails.
+
+    Cal_NthWeekdayToSec(year,month,weekday,n,fromDay)
+        Returns seconds of nth specified weekday of month, or fails if no such day. This is mainly an internal procedure for DST calculations, but might have other application.
+--------------------------------------------------------------------------------
+Section:
+Date/time formatting procedures
+
+    Cal_DateLineToSec(dateline,timeZone)
+        Converts a date in something like Icon's &dateline format (Wednesday, February 11, 1998  12:00 am) to "seconds" form.
+
+    Cal_DateToSec(date,timeZone)
+        Converts a date string in something like Icon &date format (1998/02/11) to "seconds" form.
+
+    Cal_SecToDate(seconds,timeZone)
+        Converts "seconds" form to a string in Icon's &date format (1998/02/11).
+
+    Cal_SecToDateLine(seconds,timeZone)
+        Converts "seconds" form to a string in Icon's &dateline format (Wednesday, February 11, 1998  12:00 am).
+
+    Cal_SecToUnixDate(seconds,timeZone)
+        Converts "seconds" form to a string in typical UNIX date/time format (Jan 14 10:24 1991).
+--------------------------------------------------------------------------------
+Section:
+Time-only formatting procedures
+
+    Cal_ClockToSec(seconds)
+        Converts a time in the format of &clock (19:34:56) to seconds past midnight.
+
+    Cal_SecToClock(seconds)
+        Converts seconds past midnight to a string in the format of &clock (19:34:56).
+
+See also:  datetime.icn, datefns.icn
+################################################################################
+################################################################################
 ################################################################################
 
 
