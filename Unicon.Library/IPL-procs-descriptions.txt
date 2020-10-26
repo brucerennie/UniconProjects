@@ -831,6 +831,149 @@ Time-only formatting procedures
 
 See also:  datetime.icn, datefns.icn
 ################################################################################
+File:
+calendat.icn
+********************************************************************************
+Description:
+Procedure to get date from Julian Day Number
+********************************************************************************
+Additional Notes:
+calendat(j) return a record with the month, day, and year corresponding to the Julian Date Number j.
+
+As the former contents of this file were a direct extract from the IPL file datetime.icn, replace the code with a link to datetime.
+
+record date1(month, day, year)
+procedure calendat(julian)
+
+Acknowledgement:  This procedure is based on an algorithm given in "Numerical Recipes; The Art of Scientific Computing"; William H. Press, Brian P. Flannery, Saul A. Teukolsky. and William T. Vetterling; Cambrdayge University Press, 1986.
+################################################################################
+File:
+calls.icn
+********************************************************************************
+Description:
+Procedures for calls as objects
+********************************************************************************
+Additional Notes:
+These procedures deal with procedure invocations that are encapulated in records.
+################################################################################
+File:
+capture.icn
+********************************************************************************
+Description:
+Procedures to echo output to a second file
+********************************************************************************
+Additional Notes:
+Capture is initially called by the user with one argument, the open file  to contain the echoed output. Then it places itself and several shadow  procedures between all calls to write, writes & stop.  The user never need call capture again.
+
+Subsequently, during calls to write, writes, and stop, the approprate shadow procedure gains control and calls capture internally. Capture then constructs a list of only those elements that direct output to &output and calls the original builtin function via the saved name. Upon return the shadow routine calls the the original builtin function  with the full list.
+
+A series of uncaptured output functions have been added to allow output to be directed only to &output.  These are handy for placing progress messages and other comforting information on the screen.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+Example:
+
+     otherfile := open(...,"w")
+
+     capfile :=  capture(open(filename,"w"))
+
+     write("Hello there.",var1,var2," - this should be echoed",
+        otherfile,"This should appear once in the other file only")
+
+     uncaptured_writes("This will appear once only.")
+
+     every i := 1 to 10000 do
+        if ( i % 100 ) = 0 then
+
+           uncaptured_writes("Progress is ",i,"\r")
+
+     close(capfile)
+     close(otherfile)
+--------------------------------------------------------------------------------
+Section:
+Notes:
+
+  1.    stop must be handled specially in its shadow function
+  2.    capture is not designed to be turned off
+  3.    This may be most useful in systems other than Unix (i.e. that don't have a "tee" command)
+  4.    Display has not been captured because
+        a) display is usually a debugging aid, and capture was originally intended to capture screen output to a file where a record or audit trail might be required
+        b) the display output would be 'down a level' showing the locals at the display_capture_ level, although the depth argument could easily be incremented to adjust for this
+        c) write, writes, and stop handle arguments the same way
+  5.    An alternative to having two calls would be to have capture call the desired procedure with :
+           push(&output,x) ; return p!(y ||| x )
+        While this would remove the complexity with stop it would probably be slower
+################################################################################
+File:
+cartog.icn
+********************************************************************************
+Description:
+Procedures for cartographic projection
+********************************************************************************
+Additional Notes:
+These procedures project geographic coordinates.
+
+rectp(x1, y1, x2, y2, xm, ym) defines a rectangular projection.
+
+pptrans(L1, L2) defines a planar projective transformation.
+
+utm(a, f) defines a latitude/longitude to UTM projection.
+
+
+project(p, L) projects a list of coordinates.
+
+invp(p) returns the inverse of projection p.
+
+compose(p1, p2, ...) creates a composite projection.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+rectp(x1, y1, x2, y2, xm, ym)
+returns a rectangular projection in which the point (x1, y1) maps to (x2, y2). If xm is specified, distances in the projected coordinate system are scaled by xm. If ym is also specifed, xm scales x values while ym scales y values.
+--------------------------------------------------------------------------------
+Section:
+pptrans(L1, L2)
+returns a planar projective transform that maps the four points in L1 to the four points in L2. Each of the two lists contains 8 coordinates: [x1, y1, x2, y2, x3, y3, x4, y4].
+--------------------------------------------------------------------------------
+Section:
+utm(a, f)
+returns a projection from latitude and longitude to Universal Transverse Mercator (UTM) representation. The reference ellipsoid is specified by a, the equatorial radius in metres, and f, the flattening. Alternatively, f can be omitted with a specifying a string, such as "Clarke66"; if a is also omitted, "WGS84" is used. See ellipsoid() in geodat.icn for the list of possible strings.
+
+The input list contains signed numeric values: longitude and latitude, in degrees, in that order (x before y). The output list contains triples: an integer zone number followed by real-valued UTM x and y distances in metres. No "false easting" is applied.
+--------------------------------------------------------------------------------
+Section:
+project(p, L)
+applies a projection, reading a list of coordinates and returning a new list of transformed coordinates.
+--------------------------------------------------------------------------------
+Section:
+invp(p)
+returns the inverse of projection p, or fails if no inverse projection is available.
+--------------------------------------------------------------------------------
+Section:
+compose(p1, p2, ..., pn)
+returns the projection that is thecomposition of the projections p1, p2, ..., pn. The composition applies pn first.
+--------------------------------------------------------------------------------
+Section:
+UTM conversion algorithms are based on:
+
+    Map Projections: A Working Manual
+    John P. Snyder
+    U.S. Geological Survey Professional Paper 1395
+    Washington: Superintendent of Documents, 1987
+
+--------------------------------------------------------------------------------
+Section:
+Planar projective transformation calculations come from:
+
+    Computing Plane Projective Transformations (Method 1)
+    Andrew Zisserman, Robotics Research Group, Oxford
+    in CVOnline (R. Fisher, ed.), found 22 February 2000 at:
+    http://www.dai.ed.ac.uk/CVonline/LOCAL_COPIES/EPSRC_SSAZ/node11.html
+################################################################################
+################################################################################
+################################################################################
 ################################################################################
 ################################################################################
 
