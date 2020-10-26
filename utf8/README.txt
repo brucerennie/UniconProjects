@@ -6,20 +6,21 @@ number of difficulties that will be encountered. These are documented on the
 Unicode.org website. To that end, three files have been copied from that site
 and placed here for reference in developing appropriate mapping regimes. These
 mapping sets will need to be on a langauge by language basis and there are
-situations where there is no 1-1 mapping available for lower to upper ot upper
+situations where there is no 1-1 mapping available for lower to upper or upper
 to lower case.
 
-There is now the corrseponding methods and operator overload facilities for
+There is now the corresponding methods and operator overload facilities for
 dealing with the use of UTF8 strings as numeric values and allowing these values
-to be converted to the appropriate numeric values for use in nemeric operations.
+to be converted to the appropriate numeric values for use in numeric operations.
 
 There are now consistent runtime errors in essentially all places where Unicon has
 runtime errors occurring for Unicon strings. The error messages are of the same
-standard format as the underlying Unicon system and uses the same standard error
+standard format as the underlying Unicon system and use the same standard error
 codes as found in the Unicon runtime.
 
 The following is a list of the applicable packages and the associated classes
-with each method. Inculded in this list for each pckage are the defined procedures.
+with each method. Included in this list for each package are the procedures defined
+within the package.
 
 package ErrorSystem
 class ErrorSystem
@@ -83,68 +84,68 @@ class ClassObject : ErrorSystem
     method Serial()
     method set_operator_overload_abort(noabort)
 
-    method Addition(val)
-    method Divide(val)
-    method Minus(val)
-    method Modulus(val)
-    method Multiply(val)
-    method Negate()
-    method UnaryPlus()
-    method Power(val)
+    method Addition(val)                    -->     __add__
+    method Divide(val)                      -->     __div__
+    method Minus(val)                       -->     __minus__
+    method Modulus(val)                     -->     __mod__
+    method Multiply(val)                    -->     __mult__
+    method Negate()                         -->     __neg__
+    method UnaryPlus()                      -->     __number__
+    method Power(val)                       -->     __powr__
 
-    method Equals(val)
-    method GTorEqual(val)
-    method Greater(val)
-    method LTorEqual(val)
-    method Less(val)
-    method Nequal(val)
+    method Equals(val)                      -->     __numeq__
+    method GTorEqual(val)                   -->     __numge__
+    method Greater(val)                     -->     __numgt__
+    method LTorEqual(val)                   -->     __numle__
+    method Less(val)                        -->     __numlt__
+    method Nequal(val)                      -->     __numne__
 
     method Integer()
     method Numeric()
     method Real()
 
-    method __add__(y)
-    method __div__(y)
-    method __minus__(y)
-    method __mod__(y)
-    method __mult__(y)
-    method __neg__()
-    method __number__()
-    method __powr__(y)
+    method __add__(y)                       -->     x + y
+    method __div__(y)                       -->     x / y
+    method __minus__(y)                     -->     x - y
+    method __mod__(y)                       -->     x % y
+    method __mult__(y)                      -->     x * y
+    method __neg__()                        -->     - x
+    method __number__()                     -->     + x
+    method __powr__(y)                      -->     x ^ y
 
-    method __eqv__(y)
-    method __neqv__(y)
+    method __eqv__(y)                       -->     x === y
+    method __neqv__(y)                      -->     x ~=== y
 
-    method __lexeq__(y)
-    method __lexge__(y)
-    method __lexgt__(y)
-    method __lexle__(y)
-    method __lexlt__(y)
-    method __lexne__(y)
+    method __lexeq__(y)                     -->     x == y
+    method __lexge__(y)                     -->     x >>= y
+    method __lexgt__(y)                     -->     x >> y
+    method __lexle__(y)                     -->     x <<= y
+    method __lexlt__(y)                     -->     x << y
+    method __lexne__(y)                     -->     x ~== y
 
-    method __numeq__(y)
-    method __numge__(y)
-    method __numgt__(y)
-    method __numle__(y)
-    method __numlt__(y)
-    method __numne__(y)
+    method __numeq__(y)                     -->     x = y
+    method __numge__(y)                     -->     x >= y
+    method __numgt__(y)                     -->     x > y
+    method __numle__(y)                     -->     x <= y
+    method __numlt__(y)                     -->     x < y
+    method __numne__(y)                     -->     x ~= y
 
-    method __cat__(y)
-    method __lcat__(y)
+    method __cat__(y)                       -->     x || y
+    method __lcat__(y)                      -->     x ||| y
 
-    method __compl__()
-    method __diff__(y)
-    method __inter__(y)
-    method __union__(y)
+    method __compl__()                      -->     ~ x
+    method __diff__(y)                      -->     x -- y
+    method __inter__(y)                     -->     x ** y
+    method __union__(y)                     -->     x ++ y
 
-    method __bang__()
-    method __random__()
-    method __refresh__()
-    method __sect__(y, z)
-    method __size__()
-    method __subsc__(y)
-    method __tabmat__()
-    method __toby__(y, z)
+    method __bang__()                       -->     ! x
+    method __random__()                     -->     ? x
+    method __refresh__()                    -->     ^ x
+    method __sect__(y, z)                   -->     x[i:j]
+    method __size__()                       -->     * x
+    method __subsc__(y)                     -->     x[i]
+    method __tabmat__()                     -->     = x
+    method __toby__(y, z)                   -->     x to y by z
 
 procedure __NewNotSet(val)
 procedure AlreadyRun(object_tested)
@@ -228,28 +229,29 @@ class UTF8 : ClassClass
 class __UTF8Object : ClassObject
     method Data()
 
-    method Complement()
-    method Difference(val)
-    method Intersect(val)
-    method Union(val)
+    method Complement()                     -->     __compl__
+    method Difference(val)                  -->     __diff__
+    method Intersect(val)                   -->     __inter__
+    method Union(val)                       -->     __union__
 
-    method Equiv(val)
-    method Nequiv(val)
+    method Equiv(val)                       -->     __eqv__
+    method Nequiv(val)                      -->     __neqv__
 
-    method LexEquals(str)
-    method LexGTorEq(str)
-    method LexGT(str)
-    method LexLTorEq(str)
-    method LexLT(str)
-    method LexNE(str)
+    method LexEquals(str)                   -->     __lexeq__
+    method LexGTorEq(str)                   -->     __lexge__
+    method LexGT(str)                       -->     __lexgt__
+    method LexLTorEq(str)                   -->     __lexle__
+    method LexLT(str)                       -->     __lexlt__
+    method LexNE(str)                       -->     __lexne__
 
-    method ForEach()
-    method Random()
-    method TabMatch()
-    method Size()
-    method Concatenate(ustr)
-    method Subsection(i, j)
-    method Subscript(i)
+    method ForEach()                        -->     __bang__
+    method Random()                         -->     __random__
+    method TabMatch()                       -->     __tabmat__
+    method Size()                           -->     __size__
+    method Concatenate(ustr)                -->     __cat__
+    method Subsection(i, j)                 -->     __sect__
+    method Subscript(i)                     -->     __subsc__
+
     method String()
     method Invalid()
 
@@ -279,24 +281,25 @@ class UTF8Set : ClassClass
 class __UTF8SetObject : ClassObject
     method __DebugPrint(modifier, val, uset)
 
-    method Equiv(uset)
-    method Nequiv(uset)
+    method Equiv(uset)                      -->     __eqv__
+    method Nequiv(uset)                     -->     __neqv__
 
-    method LexEquals(str)
-    method LexGTorEq(str)
-    method LexGT(str)
-    method LexLTorEq(str)
-    method LexLT(str)
-    method LexNE(str)
+    method LexEquals(str)                   -->     __lexeq__
+    method LexGTorEq(str)                   -->     __lexge__
+    method LexGT(str)                       -->     __lexgt__
+    method LexLTorEq(str)                   -->     __lexle__
+    method LexLT(str)                       -->     __lexlt__
+    method LexNE(str)                       -->     __lexne__
 
-    method Complement()
-    method Difference(val)
-    method Intersect(val)
-    method Union(val)
+    method Complement()                     -->     __compl__
+    method Difference(val)                  -->     __diff__
+    method Intersect(val)                   -->     __inter__
+    method Union(val)                       -->     __union__
 
-    method ForEach()
-    method Size()
-    method Subscript(i)
+    method ForEach()                        -->     __bang__
+    method Size()                           -->     __size__
+    method Subscript(i)                     -->     __subsc__
+
     method Member(c[])
 
     method UTF8Value()
