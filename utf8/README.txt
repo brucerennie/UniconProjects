@@ -299,6 +299,10 @@ class __UTF8SetObject : ClassObject
     method ForEach()                        -->     __bang__
     method Size()                           -->     __size__
     method Subscript(i)                     -->     __subsc__
+    method Random()                         -->     __random__
+    method TabMatch()                       -->     __tabmat__
+    method Concatenate(ustr)                -->     __cat__
+    method Subsection(i, j)                 -->     __sect__
 
     method Member(c[])
 

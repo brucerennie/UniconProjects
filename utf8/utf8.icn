@@ -5875,6 +5875,7 @@ class __UTF8SetObject : ClassObject(
                 k,
                 l,
                 __1
+
         DebugPrint("Entering")
         DebugPrint("__allcp:", ::ximage(__allcp))
         DebugPrint("__negated:", ::ximage(__negated))
@@ -5961,10 +5962,70 @@ class __UTF8SetObject : ClassObject(
         }
     end
 
-    # Member - procedure to test if c is a member of the UTF8Set. c is coerced
-    # into a string before matching occurs. If c is a member then the object is
-    # returned. this is based on the behaviour of the function member.
-    #
+    #MD:
+    #:
+    #:
+    method Random()
+        return UTF8::UTF8.Random(self.UTF8Value())
+    end
+
+    #MD:
+    #: TabMatch()
+    #:
+    method TabMatch()
+        return UTF8::UTF8.TabMatch(self.UTF8Value())
+    end
+
+    #MD:
+    #: Concatenate(ustr) - this will concatenate the data from this object followed
+    #: by the data from the ustr and return a new UTF-8 string object with the
+    #: new concatenated data. It uses the UTF8::UTF8.Concatenate() method to do this.
+    #:
+    #:@param ustr       this value should be something that can be coerced into
+    #:@                 a UTF-8 string object
+    #:@return           a new UTF-8 string object whose data is the concatenation
+    #:@                 of the data in the current object and the data in the
+    #:@                 supplied object
+    #:@error            if the  supplied object cannot be coerced into a UTF-8
+    #:@                 string object
+    #:
+    method Concatenate(ustr)
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        DebugPrint("self:", ::image(self))
+        DebugPrint("ustr:", ::image(ustr))
+        return UTF8::UTF8.Concatenate(self.UTF8Value(), ustr)
+    end
+
+    #MD:
+    #: Subsection(i, j) - this method will return a new UTF-8 object consisting
+    #: of those codepoints that correspond to the codepoints between position i
+    #: and position j. The positions are as per normal unicon/icon strings.
+    #:
+    #:@param i          if it is not supplied, it will default to 1, if it is
+    #:@                 negative, the value will be based on the size of the
+    #:@                 the UTF-8 string. the same referencing rules as for
+    #:@                 unicon/icon strings - RHS start for negative numbers
+    #:param j           if it is not supplied, it will default to i + 1, if it is
+    #:@                 negative, the value will be based on the size of the
+    #:@                 the UTF-8 string. the same referencing rules as for
+    #:@                 unicon/icon strings - RHS start for negative numbers
+    #:@return           a new UTF-8 object representing the codepoints found
+    #:@                 between i and j positions
+    #:@fails            if the values of i and j are outside the UTF-8 string
+    #:@                 the method will fail
+    #:
+    method Subsection(i, j)
+        DebugPrint("self:", image(self), " i:", i, " j:", j)
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /j & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        return UTF8::UTF8.Subsection(self.UTF8Value(), i, j)
+    end
+
+    #MD:
+    #: Member - procedure to test if c is a member of the UTF8Set. c is coerced
+    #: into a string before matching occurs. If c is a member then the object is
+    #: returned. this is based on the behaviour of the function member.
+    #:
     method Member(c[])
         local   val,                    #LV:
 
