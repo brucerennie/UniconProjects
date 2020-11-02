@@ -1067,6 +1067,18 @@ for which
 
 Of course, you don't have to know all this to use encode and decode.
 ################################################################################
+File:
+colmize.icn
+********************************************************************************
+Description:
+Procedure to arrange data into columns
+********************************************************************************
+Additional Notes:
+colmize() -- Arrange data into columns.
+
+Procedure to arrange a number of data items into multiple columns. Items are arranged in column-wise order, that is, the sequence runs down the first column, then down the second, etc.
+
+This procedure goes to great lengths to print the items in as few vertical lines as possible.
 ################################################################################
 ################################################################################
 ################################################################################
