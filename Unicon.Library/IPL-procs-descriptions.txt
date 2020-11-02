@@ -1080,6 +1080,273 @@ Procedure to arrange a number of data items into multiple columns. Items are arr
 
 This procedure goes to great lengths to print the items in as few vertical lines as possible.
 ################################################################################
+File:
+colrspec.icn
+********************************************************************************
+Description:
+Procedure to produce VRML color specifications
+################################################################################
+File:
+complete.icn
+********************************************************************************
+Description:
+Procedure to complete partial input string
+********************************************************************************
+Additional Notes:
+complete(s,st)      completes a s relative to a set or list of strings, st. Put differently, complete() lets you supply a partial string, s, and get back those strings in st that s is either equal to or a	substring of.
+********************************************************************************
+Detail Description:
+Lots of command interfaces allow completion of partial input. Complete() simply represents my personal sentiments about how this might best be done in Icon.  If you strip away the profuse comments below, you end up with only about thirty lines of actual source code.
+
+I have arranged things so that only that portion of an automaton which is needed to complete a given string is actually created and stored. Storing automata for later use naturally makes complete() eat up more memory. The performance gains can make it worth the trouble, though.  If, for some reason, there comes a time when it is advisable to reclaim the space occupied by complete's static structures, you can just call it without arguments. This "resets" complete() and forces an immediate garbage collection.
+--------------------------------------------------------------------------------
+Section:
+Example code:
+
+        commands := ["run","stop","quit","save","load","continue"]
+        while line := read(&input) do {
+           cmds := list()
+           every put(cmds, complete(line, commands))
+           case *cmds of {
+               0 : input_error(line)
+               1 : do_command(cmds[1])
+               default : display_possible_completions(cmds)
+           }
+           etc...
+
+More Iconish methods might include displaying successive alternatives each time the user presses the tab key (this would, however, require using the nonportable getch() routine). Another method might be to use the first string suspended by complete().
+--------------------------------------------------------------------------------
+Section:
+NOTE:
+This entire shebang could be replaced with a slightly slower and much smaller program suggested to me by Jerry Nowlin and Bob Alexander.
+
+       procedure terscompl(s, st)
+           suspend match(s, p := !st) & p
+       end
+
+This program will work fine for lists with just a few members, and also for cases where s is fairly large. It will also use much less memory.
+################################################################################
+File:
+complex.icn
+********************************************************************************
+Description:
+Procedures to perform complex arithmetic
+********************************************************************************
+Additional Notes:
+The following procedures perform operations on complex numbers.
+
+        complex(r,i)        create complex number with real part r and imaginary part i
+
+        cpxadd(z1, z2)      add complex numbers z1 and z2
+
+        cpxdiv(z1, z2)      divide complex number z1 by complex number z2
+
+        cpxmul(z1, z2)      multiply complex number z1 by complex number z2
+
+        cpxsub(z1, z2)      subtract complex number z2 from complex number z1
+
+        cpxstr(z)           convert complex number z to string representation
+
+        strcpx(s)           convert string representation s of complex number to complex number
+################################################################################
+File:
+conffile.icn
+********************************************************************************
+Description:
+Procedures to read initialization directives
+********************************************************************************
+Additional Notes:
+At Some point certain procedures become indispensable.  Anyone who has used 'options' from the Icon program library will probably agree. I found a need to be able to quickly, change the format and interpretation of a set of configuration and rules files. And so, I hope this collection of procedures will become similarly indispensable.
+
+    Directive( p1, p2, i1, i2 ) : r1
+
+        returns a specification record for a table required by ReadDirectives
+
+        p1 is the build procedure used to extract the data from the file. The table below describes the build procedures and the default minimum and maximum number of arguments for each. If the included procedures don't meet your needs then you can easily add your own and still use Directive to build the specification.
+
+                build procedure           |  minargs  |  maxargs
+                --------------------------|-----------|---------
+                Directive_table_of_sets   |     2     |      -
+                Directive_table           |     2     |      -
+                Directive_value           |     1     |      1
+                Directive_set             |     1     |      -
+                Directive_list            |     1     |      -
+                < user defined >          |     1     |      -
+                Directive_exists          |     0     |      0
+                Directive_ignore          |     0     |      -
+                Directive_warning         |     0     |      -
+
+        p2 is an edit procedure that allows you to preprocess the data or null
+        i1 is the minimum number of arguments for this directive, default is 1
+        i2 is the maximum number of arguments for this directive
+
+    Run-time Errors:
+        - 123 if p1 isn't a procedure
+        - 123 if p2 isn't null or a procedure
+        - 101 if i1, i2 aren't integers and not ( 0 <= i1 <= i2 ) after defaults
+
+    ReadDirectives( l1, t1, s1, s2, c1, c2, p1 ) : t2
+
+        returns a table containing parsed directives for the specified file
+
+        l1 is a list of file names or open files, each element of l1 is tried in turn until a file is opened or an open file is encountered.
+
+            For example: [ "my/rules", "/etc/rules", &input ]
+
+        t1 is a table of specifications for parsing and handling each directive
+        s1 the comment character, default "#"
+        s2 the continuation character, default "_"
+        c1 the escape character, default "\"
+        c2 the cset of whitespace, default ' \b\t\v\f\r'
+        p1 stop | an error procedure to be called, fail if null
+
+        t2 is a table containing the parsed results keyed by tag
+
+    Notes:
+        - the special key "*file*" is a list containing the original text of input file with interspersed diagnostic messages.
+        - the comment, escape, continuation and whitespace characters must not overlap (unpredictable)
+        - the end of a directive statement will forcibly close an open quote (no warning)
+        - the end of file will forcibly close a continuation (no warning)
+
+    Run-time Errors:
+        - 103, 104, 107, 108, 500
+            500 errors occur if:
+                - arguments are too big/small
+                - the specification table is improper
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+Directive file syntax:
+
+        - blank lines are ignored
+        - all syntactic characters are parameterized
+        - everything after a comment character is ignored (discarded)
+        - to include a comment character in the directive, precede it with an escape
+        - to continue a directive, place a continue character at the end of the line (before comments)
+        - trailing whitespace is NOT ignored in continuations
+        - quoted strings are supported,
+        - to include a quote within a quoted string, precede the enclosed quote with an escape
+--------------------------------------------------------------------------------
+Section:
+Usage:
+
+    -- Config file, example: --
+
+        # comment line
+
+        var1 "This string, w/o quotes, will be in cfgspec[\"var\"]"
+        cset1 "abcdefffffffffffff"   # type of quotes isn't important
+        int1  12345
+        lcase1 "Hello There THIs iS CasE inSENsITive"
+        list1 one two three _ # continues
+            four five one three zero
+        set1 one one one two three 3 'a b c' # one two three 3 'a b c'
+        table1 k1 v1
+        table1 k2 v2
+        t/set1 key1 v1 v2 v3 v4
+        t/set1 key2 v5 v6
+        t/set1 key3 "1 2 \#3"  # comment
+        warn1  this will produce _
+            a warning
+--------------------------------------------------------------------------------
+Section:
+    -- Coding example: --
+
+        # 1. Define a specification table using Directive.
+        #    Directive has four fields:
+        #    - the procedure to handle the tag
+        #    - an optional edit procedure to preprocess the data
+        #    - the minimum number of values following the tag,
+        #      default is dependant on the &null is treated as 0
+        #    - the maximum number of values following the tag,
+        #      &null is treated as unlimited
+        #    The table's keys are the directives of the configuration file
+        #    The default specification should be either warning of ignore
+
+            cfgspec    := table( Directive( Directive_warning ) )
+            cfgspec["var1"]   := Directive( Directive_value )
+            cfgspec["cset1"]  := Directive( Directive_value, cset )
+            cfgspec["int1"]   := Directive( Directive_value, integer )
+            cfgspec["lcase1"] := Directive( Directive_value, map )
+            cfgspec["list1"]  := Directive( Directive_list )
+            cfgspec["set1"]   := Directive( Directive_set )
+            cfgspec["table1"] := Directive( Directive_table )
+            cfgspec["t/set1"] := Directive( Directive_table_of_sets )
+
+        # 2. Read, parse and build a table based upon the spec and the file
+
+            cfg := ReadDirectives( ["my.conf",&input], cfgspec )
+
+        # 3. Process the output
+
+            write("Input:\n")
+            every write(!cfg["*file*"])
+            write("\nBuilt:\n")
+            every  k :=key(cfg) do
+            if k ~== "*file*" then write(k, " := ",ximage(cfg[k]))
+--------------------------------------------------------------------------------
+Section:
+    -- Output: --
+
+        Input:
+
+        # comment line
+
+        var1 "This string, w/o quotes, will be in cfgspec[\"var\"]"
+        cset1 "abcdefffffffffffff"   # type of quotes isn't important
+        int1  12345
+        lcase1 "Hello There THIs iS CasE inSENsITive"
+        list1 one two three _ # continues
+            four five one three zero
+        set1 one one one two three 3 'a b c' # one two three 3 'a b c'
+            table1 k1 v1
+            table1 k2 v2
+            t/set1 key1 v1 v2 v3 v4
+            t/set1 key2 v5 v6
+            t/set1 key3 "1 2 \#3"  # comment
+        warn This will produce a _
+            warning
+        -- Directive isn't defined in specification.
+
+        Built:
+
+        set1 := S1 := set()
+            insert(S1,"3")
+            insert(S1,"a b c")
+            insert(S1,"one")
+            insert(S1,"three")
+            insert(S1,"two")
+        cset1 := 'abcdef'
+        t/set1 := T4 := table(&null)
+            T4["key1"] := S2 := set()
+                insert(S2,"v1")
+                insert(S2,"v2")
+                insert(S2,"v3")
+                insert(S2,"v4")
+            T4["key2"] := S3 := set()
+                insert(S3,"v5")
+                insert(S3,"v6")
+            T4["key3"] := S4 := set()
+                insert(S4,"1 2 #3")
+        list1 := L12 := list(8)
+            L12[1] := "one"
+            L12[2] := "two"
+            L12[3] := "three"
+            L12[4] := "four"
+            L12[5] := "five"
+            L12[6] := "one"
+            L12[7] := "three"
+            L12[8] := "zero"
+        lcase1 := "hello there this is case insensitive"
+        int1 := 12345
+        var1 := "This string, w/o quotes, will be in cfgspec[\"var\"]"
+        table1 := T3 := table(&null)
+            T3["k1"] := "v1"
+            T3["k2"] := "v2"
+################################################################################
+################################################################################
+################################################################################
 ################################################################################
 ################################################################################
 
