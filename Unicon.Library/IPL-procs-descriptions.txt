@@ -972,6 +972,100 @@ Planar projective transformation calculations come from:
     in CVOnline (R. Fisher, ed.), found 22 February 2000 at:
     http://www.dai.ed.ac.uk/CVonline/LOCAL_COPIES/EPSRC_SSAZ/node11.html
 ################################################################################
+File:
+caseless.icn
+********************************************************************************
+Description:
+Procedures to perform caseless scanning
+********************************************************************************
+Additional Notes:
+These procedures are analogous to the standard string-analysis functions except that uppercase letters are considered equivalent to lowercase letters.
+
+anycl(c, s, i1, i2)             succeeds and produces i1 + 1, provided map(s[i1]) is in cset(map(c)) and i2 is greater than i1.  It fails otherwise.
+
+balcl(c1, c2, c3, s, i1, i2)    generates the sequence of integer positions in s preceding a character of cset(map(c1)) in map(s[i1:i2]) that is balanced with respect to characters in cset(map(c2)) and cset(map(c3)), but fails if there is no such position.
+
+findcl(s1, s2, i1, i2)          generates the sequence of integer positions in s2 at which map(s1) occurs as a substring in map(s2[i1:i2]), but fails if there is no such position.
+
+manycl(c, s, i1, i2)            succeeds and produces the position in s after the longest initial sequence of characters in cset(map(c)) within map(s[i1:i2]).  It fails if map(s[i1]) is not in cset(map(c)).
+
+matchcl(s1, s2, i1, i2)         produces i1 + *s1 if map(s1) == map(s2[i1+:=*s1]) but fails otherwise.
+
+uptocl(c, s, i1, i2)            generates the sequence of integer positions in s preceding a character of cset(map(c)) in map(s[i1:i2]).  It fails if there is no such position.
+
+Defaults:
+                s, s2       &subject
+                i1          &pos if s or s2 is defaulted; otherwise 1
+                i2          0
+                c1          &cset
+                c2          '('
+                c3          ')'
+
+Errors:
+                101         i1 or i2 not integer
+                103         s or s1 or s2 not string
+                104         c or c1 or c2 or c3 not cset
+################################################################################
+File:
+codeobj.icn
+********************************************************************************
+Description:
+Procedures to encode and decode Icon data
+********************************************************************************
+Additional Notes:
+These procedures provide a way of storing Icon values as strings and retrieving them.  The procedure encode(x) converts x to a string s that can be converted back to x by decode(s). These procedures handle all kinds of values, including structures of arbitrary complexity and even loops.  For "scalar" types -- null, integer, real, cset, and string --
+
+    decode(encode(x)) === x
+
+For structures types -- list, set, table, and record types -- decode(encode(x)) is, for course, not identical to x, but it has the same "shape" and its elements bear the same relation to the original as if they were encoded and decode individually.
+
+No much can be done with files, functions and procedures, and co-expressions except to preserve type and identification.
+
+The encoding of strings and csets handles all characters in a way that it is safe to write the encoding to a file and read it back.
+
+No particular effort was made to use an encoding of value that minimizes the length of the resulting string. Note, however, that as of Version 7 of Icon, there are no limits on the length of strings that can be written out or read in.
+********************************************************************************
+Detail Description:
+The encoding of a value consists of four parts:  a tag, a length, a type code, and a string of the specified length that encodes the value itself.
+
+The tag is omitted for scalar values that are self-defining. For other values, the tag serves as a unique identification. If such a value appears more than once, only its tag appears after the first encoding. There is, therefore, a type code that distinguishes a label for a previously encoded value from other encodings. Tags are strings of lowercase letters. Since the tag is followed by a digit that starts the length, the two can be distinguished.
+
+The length is simply the length of the encoded value that follows.
+
+The type codes consist of single letters taken from the first character of the type name, with lower- and uppercase used to avoid ambiguities.
+
+Where a structure contains several elements, the encodings of the elements are concatenated. Note that the form of the encoding contains the information needed to separate consecutive elements.
+
+Here are some examples of values and their encodings:
+
+    x                     encode(x)
+   -------------------------------------------------------
+
+    1                     "1i1"
+    2.0                   "3r2.0"
+    &null                 "0n"
+    "\377"                "4s\\377"
+    '\376\377'            "8c\\376\\377"
+    procedure main        "a4pmain"
+    co-expression #1 (0)  "b0C"
+    []                    "c0L"
+    set()                 "d0S"
+    table("a")            "e3T1sa"
+    L1 := ["hi","there"]  "f11L2shi5sthere"
+
+A loop is illsutrated by
+
+    L2 := []
+    put(L2,L2)
+
+for which
+
+    x                     encode(x)
+   -------------------------------------------------------
+
+    L2                    "g3L1lg"
+
+Of course, you don't have to know all this to use encode and decode.
 ################################################################################
 ################################################################################
 ################################################################################
