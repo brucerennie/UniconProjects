@@ -1485,8 +1485,168 @@ Astronomers number each 24-hour period, starting and ending at noon, with a uniq
 The C code presented in that book heavily uses the automatic conversion of real (floating point) numbers to integers by truncation. Since Icon doesn't do this, explicit type conversions are required.
 
 ################################################################################
+File:
+datetime.icn
+********************************************************************************
+Description:
+Procedures for date and time operations
+********************************************************************************
+Additional Notes:
+Notes:
+    - the default value for function parameters named "hoursFromGmt" is the value of global variable "HoursFromGmt" if nonnull, or environment variable "HoursFromGmt" if set, or 0.
+    - The base year from which the "seconds" representation of a date is calculated is by default 1970 (the ad hoc standard used by both Unix and MS-Windows), but can be changed by either setting the global variable "DateBaseYear" or environment variable "DateBaseYear".
+    - There are some procedures not mentioned in this summary that are useful: DateRecToSec(), SecToDateRec(). See the source code for details.
+
+ClockToSec(seconds)
+    converts a time in the format of &clock to seconds past midnight.
+
+DateLineToSec(dateline,hoursFromGmt)
+    converts a date in &dateline format to seconds since start of dateBaseYear.
+
+DateToSec(date,hoursFromGmt)
+    converts a date string in Icon &date format (yyyy/mm/dd) to seconds past DateBaseYear.
+
+SecToClock(seconds)
+    converts seconds past midnight to a string in the format of &clock.
+
+SecToDate(seconds,hoursFromGmt)
+    converts seconds past DateBaseYear to a string in Icon &date format (yyyy/mm/dd).
+
+SecToDateLine(seconds,hoursFromGmt)
+    produces a date in the same format as Icon's &dateline.
+
+SecToUnixDate(seconds,hoursFromGmt)
+    returns a date and time in typical UNIX format: Jan 14 10:24 1991.
+
+IsLeapYear(year)
+    succeeds if year is a leap year, otherwise fails.
+
+calendat(j)
+    returns a record with the month, day, and year corresponding to the Julian Date Number j.
+
+date()
+    natural date in English.
+
+dayoweek(day, month, year)
+    produces the day of the week for the given date
+
+full13th(year1, year2)
+    generates records giving the days on which a full moon occurs on Friday the 13th in the range from year1 though year2.
+
+julian(m, d, y)
+    returns the Julian Day Number for the specified month, day, and year.
+
+pom(n, phase)
+    returns record with the Julian Day number of fractional part of the day for which the nth such phase since January, 1900.  Phases are encoded as:
+
+        0 - new moon
+        1 - first quarter
+        2 - full moon
+        3 - last quarter#
+
+    GMT is assumed.
+
+saytime()
+    computes the time in natural English.  If an argument is supplied it is used as a test value to check the operation the program.
+
+walltime()
+    produces the number of seconds since midnight. Beware wrap-around when used in programs that span midnight.
+
+Acknowledgement:  Some of these procedures are based on an algorithm given in "Numerical Recipes; The Art of Scientific Computing"; William H. Press, Brian P. Flannery, Saul A. Teukolsky, and William T. Vetterling;#  Cambridge University Press, 1986.
 ################################################################################
+File:
+ddfread.icn
+********************************************************************************
+Description:
+Procedures for reading ISO 8211 DDF files
+********************************************************************************
+Additional Notes:
+These procedures read DDF files ("Data Descriptive Files", ISO standard 8211) such as those specified by the US Geological Survey's "Spatial Data Transfer Standard" for digital maps. ISO8211 files from other sources may contain additional data encodings not recognized by these procedures.
+
+    ddfopen(filename)   opens a file and returns a handle.
+    ddfdda(handle)      returns a list of header records.
+    ddfread(handle)     reads the next data record.
+    ddfclose(handle)    closes the  file.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+ddfopen(filename)
+    opens a DDF file, decodes the header, and returns an opaque handle for use with subsequent calls. It fails if any problems are encountered. Instead of a filename, an already-open file can be supplied.
+--------------------------------------------------------------------------------
+Section:
+ddfdda(handle)
+    returns a list of records containing data from the Data Descriptive Area (DDA) of the file header. Each record contains the following fields:
+
+        tag             DDR entry tag
+        control         field control data
+        name            field name
+        abels           list of field labels
+        format          data format
+
+    The records may also contain other fields used internally.
+--------------------------------------------------------------------------------
+Section:
+ddfread(handle)
+    reads the next data record from the file. It returns a list of lists, with each sublist containing a tag name followed by the associated data values, already decoded according to the specification given in the header.
+--------------------------------------------------------------------------------
+Section:
+ddfclose(handle)
+    closes a DDF file.
 ################################################################################
+File:
+dif.icn
+********************************************************************************
+Description:
+Procedure to check for differences
+********************************************************************************
+Additional Notes:
+    dif(stream, compare, eof, group)
+        generates a sequence of differences between an arbitrary number of input streams. Each result is returned as a list of diff_recs, one for each input stream, with each diff_rec containing a list of items that differ and their position in the input stream.
+
+The diff_rec type is declared as:
+
+        record diff_rec(pos,diffs)
+
+    dif() fails if there are no differences, i.e. it produces an empty result sequence.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+For example, if two input streams are:
+
+    a b c d e f g h
+    a b d e f i j
+
+the output sequence would be:
+
+    [diff_rec(3,[c]),diff_rec(3,[])]
+    [diff_rec(7,[g,h]),diff_rec(6,[i,j])
+--------------------------------------------------------------------------------
+Section:
+The arguments to dif(stream,compare,eof,group) are:
+
+    stream          A list of data objects that represent input streams from which dif will extract its input "records". The elements can be of several different types which result in different actions, as follows:
+
+                Type                Action
+            ===========     =============================
+            file            file is "read" to get records
+
+            co-expression   co-expression is activated to get records
+
+            list            records are "gotten" (get()) from the list
+
+            diff_proc       a record type defined in "dif" to allow a procedure (or procedures) suppled by dif's caller to be called to get records. Diff_proc has two fields, the procedure to call and the argument to call it with. Its definition looks like this:
+
+                            record diff_proc(proc,arg)
+--------------------------------------------------------------------------------
+Section:
+Optional arguments:
+    compare     Item comparison procedure -- succeeds if "equal", otherwise fails (default is the identity "===" comparison). The comparison must allow for the fact that the eof object (see next) might be an argument, and a pair of eofs must compare equal.
+
+    eof         An object that is distinguishable from other objects in the stream.  Default is &null.
+
+    group       A procedure that is called with the current number of unmatched items as its argument. It must return the number of matching items required for file synchronization to occur. Default is the formula Trunc((2.0 * Log(M)) + 2.0) where M is the number of unmatched items.
 ################################################################################
 ################################################################################
 ################################################################################
