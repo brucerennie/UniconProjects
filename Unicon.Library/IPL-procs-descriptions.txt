@@ -1648,10 +1648,386 @@ Optional arguments:
 
     group       A procedure that is called with the current number of unmatched items as its argument. It must return the number of matching items required for file synchronization to occur. Default is the formula Trunc((2.0 * Log(M)) + 2.0) where M is the number of unmatched items.
 ################################################################################
+File:
+digitcnt.icn
+********************************************************************************
+Description:
+Procedure to count number of digits in file
+********************************************************************************
+Additional Notes:
+This procedure counts the number of each digit in a file and returns a ten-element list with the counts.
 ################################################################################
+File:
+divide.icn
+********************************************************************************
+Description:
+Procedure to perform long division
+********************************************************************************
+Additional Notes:
+Doesn't get the decimal point.  Not sure what the padding does; to study.
 ################################################################################
+File:
+ebcdic.icn
+********************************************************************************
+Description:
+Procedures to convert between ASCII and EBCDIC
+********************************************************************************
+Additional Notes:
+These procedures assist in use of the ASCII and EBCDIC character sets, regardless of the native character set of the host:
+
+    Ascii128()          Returns a 128-byte string of ASCII characters in numerical order.  Ascii128() should be used in preference to &ascii for applications which might run on an EBCDIC host.
+
+    Ascii256()          Returns a 256-byte string representing the 256-character ASCII character set.  On an EBCDIC host, the order of the second 128 characters is essentially arbitrary.
+
+    Ebcdic()            Returns a 256-byte string of EBCDIC characters in numerical order.
+
+    AsciiChar(i)        Returns the character whose ASCII representation is i.
+
+    AsciiOrd(c)         Returns the position of the character c in the ASCII collating sequence.
+
+    EbcdicChar(i)       Returns the character whose EBCDIC representation is i.
+
+    EbcdicOrd(c)        Returns the position of the character c in the EBCDIC collating sequence.
+
+    MapEtoA(s)          Maps a string of EBCDIC characters to the equivalent ASCII string, according to a plausible mapping.
+
+    MapAtoE(s)          Maps a string of ASCII characters to the equivalent EBCDIC string, according to a plausible mapping.
+
+    Control(c)          Returns the "control character" associated with the character c.  On an EBCDIC host, with $ representing an EBCDIC character with no 7-bit ASCII equivalent, Control("$") may not be identical to "\^$", as translated by ICONT (and neither result is particularly meaningful).
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+Notes:
+    There is no universally accepted mapping between ASCII and EBCDIC. See the SHARE Inc. publication "ASCII and EBCDIC Character Set and Code Issues in Systems Application Architecture" for more information than you would ever want to have on this subject.
+
+    The mapping of the first 128 characters defined below by Ascii128() is the most commonly accepted mapping, even though it probably is not exactly like the mapping used by your favorite PC to mainframe file transfer utility. The mapping of the second 128 characters is quite arbitrary, except that where an alternate translation of ASCII char(n) is popular, this translation is assigned to Ascii256()[n+129].
+
+    The behavior of all functions in this package is controlled solely by the string literals in the _Eascii() procedure. Therefore you may modify these strings to taste, and still obtain consistent results, provided that each character appears exactly once in the result of _Eascii().
+
+    Yes, it's really true that the EBCDIC "\n" (NL, char(16r15)) is not the same as "\l" (LF, char(16r25)). How can that be?  "Don't blame me, man, I didn't do it."
 ################################################################################
+File:
+empgsup.icn
+********************************************************************************
+Description:
+Procedure to support empg
+********************************************************************************
+Additional Notes:
+This procedure is called by timing programs produced by empg. It a "delta" timing value used to adjust timings.
 ################################################################################
+File:
+emptygen.icn
+********************************************************************************
+Description:
+Procedures for meta-translation code generation
+********************************************************************************
+Additional Notes:
+This program is designed to be linked with the output of the meta-translator. As given here, they produce an identity translation. Modifications can be made to effect different translations.
+
+The procedures here are just wrappers. This file is a skeleton that can be used as a basis for code-generation procedures.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+Bug:
+The invocable declaration is not handled properly. "invocable all" will get by, but some other forms produce syntax errors. The problem is in the meta-translator itself, not in this program.
+--------------------------------------------------------------------------------
+Section:
+    Mp()                        -   call meta-procedure, any of the procedures below. Called from main procedure.
+    Alt(e1, e2)                 -   e1 | e2
+    Apply(e1, e2)               -   e1 ! e2
+    Arg(e)                      -   procedure argument (parameter)
+    Asgnop(op, e1, e2)          -   e1 op e2
+    Augscan(e1, e2)             -   e1 ?:= e2
+    Bamper(e1, e2)              -   e1 & e2
+    Binop(op, e1, e2)           -   e1 op e2
+    Body(es[])                  -   procedure body
+    Break(e)                    -   break e
+    Case(e, clist)              -   case e of { caselist }
+    Cclause(e1, e2)             -   e1 : e2
+    Clist(cclause1, cclause2)   -   cclause1 ; cclause2
+    Clit(c)                     -   'c'
+    Compound(es[])              -   { e1; e2; ... }
+    Create(e)                   -   create e
+    Default(e)                  -   default: e
+    End()                       -   end
+    Every(e)                    -   every e
+    EveryDo(e1, e2)             -   every e1 do e2
+    Fail()                      -   fail
+    Field(e, f)                 -   e . f
+    Global(vs[])                -   global v1, v2, ...
+    If(e1, e2)                  -   if e1 then e2
+    IfElse(e1, e2, e3)          -   if e1 then e2 else e3
+    Ilit(i)                     -   i
+    Initial(e)                  -   initial e
+    Invocable(ss[])             -   invocable s1, s2, ... (problem)
+    Invoke(e, es[])             -   e(e1, e2, ...)
+    Key(s)                      -   &s
+    Limit(e1, e2)               -   e1 \ e2
+    Link(vs[])                  -   link "v1, v2, ..."
+    List(es[])                  -   [e1, e2, ... ]
+    Local(vs[])                 -   local v1, v2, ...
+    Next()                      -   next
+    Not(e)                      -   not e
+    Null()                      -   &null
+    Paren(es[])                 -   (e1, e2, ... )
+    Pdco(e, es[])               -   e{e1, e2, ... }
+    Proc(n, vs[])               -   procedure n(v1, v2, ...)
+    Record(n, fs[])             -   record n(f1, f2, ...)
+    Repeat(e)                   -   repeat e
+    Return(e)                   -   return e
+    Rlit(r)                     -   r
+    Scan(e1, e2)                -   e1 ? e2
+    Section(op, e1, e2, e3)     -   e1[e2 op  e3]
+    Slit(s)                     -   "s"
+    Static(vs[])                -   static v1, v2, ..
+    Subscript(e1, e2)           -   e1[e2]
+    Suspend(e)                  -   suspend e
+    SuspendDo(e1, e2)           -   suspend e1 do e2
+    To(e1, e2)                  -   e1 to e2
+    ToBy(e1, e2, e3)            -   e1 to e2 by e3
+    Repalt(e)                   -   |e
+    Unop(op, e)                 -   op e
+    Until(e)                    -   until e
+    UntilDo(e1, e2)             -   until e1 do e2
+    Var(v)                      -   v
+    While(e)                    -   while e
+    WhileDo(e1, e2)             -   while e1 do e2
+################################################################################
+File:
+equiv.icn
+********************************************************************************
+Description:
+Procedure to compare structures
+********************************************************************************
+Additional Notes:
+        equiv(s,y)      compare arbitrary structures x and y
+
+The procedure equiv() tests for the "equivalence" of two values. For types other than structures, it does the same thing as x1 === x2. For structures, the test is for "shape".  For example,
+
+    equiv([],[])
+
+succeeds.
+
+It handles loops, but does not recognize them as such. For example, given
+
+    L1 := []
+    L2 := []
+    put(L1,L1)
+    put(L2,L1)
+
+    equiv(L1,L2)
+
+succeeds.
+
+The concept of equivalence for tables and sets is not quite right if their elements are themselves structures. The problem is that there is no concept of order for tables and sets, yet it is impractical to test for equivalence of their elements without imposing an order. Since structures sort by "age", there may be a mismatch between equivalentstructures in two tables or sets.
+
+Note:
+The procedures equiv and ldag have a trailing argument that is used on internal recursive calls; a second argument must not be supplied by the user.
+################################################################################
+File:
+escape.icn
+********************************************************************************
+Description:
+Procedures to interpret Icon literal escapes
+********************************************************************************
+Additional Notes:
+The procedure escape(s) produces a string in which Icon quotedliteral escape conventions in s are replaced by the corresponding characters. For example, escape("\\143\\141\\164") produces the string "cat".
+################################################################################
+File:
+escapesq.icn
+********************************************************************************
+Description:
+Procedures to deal with character string escapes
+********************************************************************************
+Additional Notes:
+Procedure kit for dealing with escape sequences in Icon character string representations. Note that Icon escape sequences are very similar to C escapes, so this works for C strings, too.
+
+    escapeseq()     --  a matching procedure for Icon string escape sequences
+
+    escchar()       --  produces the character value of an Icon string escape sequence
+
+    escape()        --  converts a string with escape sequences (as in Icon string representation) to the string it represents with escape
+
+    quotedstring()  --  matching routine for a quoted string.
+################################################################################
+File:
+eval.icn
+********************************************************************************
+Description:
+Procedure to evaluate string as a call
+********************************************************************************
+Additional Notes:
+This procedure analyzes a string representing an Icon function or procedure call and evaluates the result. Operators can be used in functional form, as in "*(2,3)".
+
+This procedure cannot handle nested expressions or control structures.
+
+It assumes the string is well-formed. The arguments can only be Icon literals. Escapes, commas, and parentheses in strings literals are not handled.
+
+In the case of operators that are both unary and binary, the binary form is used.
+################################################################################
+File:
+evallist.icn
+********************************************************************************
+Description:
+Procedure to produce a list generated by expression
+********************************************************************************
+Additional Notes:
+This procedure takes an expression, produces a program encapsulating it, and puts the results written by the program in a list.
+
+It is called as evallist(expr, n, ucode, ...) where expr is an expression (normally a generator), n is the maximum size of the list, and the trailing arguments are ucode files to link with the expression.
+################################################################################
+File:
+eventgen.icn
+********************************************************************************
+Description:
+Procedures for meta-variant code generation
+********************************************************************************
+Additional Notes:
+This program is designed to be linked with the output of the meta-variant translator.
+
+It is designed to insert event-reporting code in Icon programs.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+Bug:  The invocable declaration is not handled properly. "invocable all" will get by, but some other forms produce syntax errors. The problem is in the meta-variant translator itself, not in this program.
+--------------------------------------------------------------------------------
+Section:
+    Alt(e1, e2)                 -   e1 | e2
+    Apply(e1, e2)               -   e1 ! e2
+    Arg(e)                      -   procedure argument (parameter)
+    Asgnop(op, e1, e2)          -   e1 op e2
+    Augscan(e1, e2)             -   e1 ?:= e2
+    Bamper(e1, e2)              -   e1 & e2
+    Binop(op, e1, e2)           -   e1 op e2
+    Body(es[])                  -   procedure body
+    Break(e)                    -   break e
+    Case(e, clist)              -   case e of { caselist }
+    Cclause(e1, e2)             -   e1 : e2
+    Clist(cclause1, cclause2)   -   cclause1 ; cclause2
+    Clit(c)                     -   'c'
+    Compound(es[])              -   { e1; e2; ... }
+    Create(e)                   -   create e
+    Default(e)                  -   default: e
+    End()                       -   end
+    Every(e)                    -   every e
+    EveryDo(e1, e2)             -   every e1 do e2
+    Fail()                      -   fail
+    Field(e, f)                 -   e . f
+    Global(vs[])                -   global v1, v2, ...
+    If(e1, e2)                  -   if e1 then e2
+    IfElse(e1, e2, e3)          -   if e1 then e2 else e3
+    Ilit(i)                     -   i
+    Initial(e)                  -   initial e
+    Invocable(ss[])             -   invocable s1, s2, ... (problem)
+    Invoke(e, es[])             -   e(e1, e2, ...)
+    Key(s)                      -   &s
+    Limit(e1, e2)               -   e1 \ e2
+    Link(vs[])                  -   link "v1, v2, ..."
+    List(es[])                  -   [e1, e2, ... ]
+    Local(vs[])                 -   local v1, v2, ...
+    Next()                      -   next
+    Not(e)                      -   not e
+    Null()                      -   &null
+    Paren(es[])                 -   (e1, e2, ... )
+    Pdco(e, es[])               -   e{e1, e2, ... }
+    Proc(n, vs[])               -   procedure n(v1, v2, ...)
+    Record(n, fs[])             -   record n(f1, f2, ...)
+    Repeat(e)                   -   repeat e
+    Return(e)                   -   return e
+    Rlit(r)                     -   r
+    Scan(e1, e2)                -   e1 ? e2
+    Section(op, e1, e2, e3)     -   e1[e2 op  e3]
+    Slit(s)                     -   "s"
+    Static(vs[])                -   static v1, v2, ..
+    Subscript(e1, e2)           -   e1[e2]
+    Suspend(e)                  -   suspend e
+    SuspendDo(e1, e2)           -   suspend e1 do e2
+    To(e1, e2)                  -   e1 to e2
+    ToBy(e1, e2, e3)            -   e1 to e2 by e3
+    Repalt(e)                   -   |e
+    Unop(op, e)                 -   op e
+    Until(e)                    -   until e
+    UntilDo(e1, e2)             -   until e1 do e2
+    Var(v)                      -   v
+    While(e)                    -   while e
+    WhileDo(e1, e2)             -   while e1 do e2
+################################################################################
+File:
+everycat.icn
+********************************************************************************
+Description:
+Procedure for generating all concatenations
+********************************************************************************
+Additional Notes:
+    everycat(x1, x2, ...) generates the concatenation of every string from !x1, !x2, ... .
+
+For example, if
+
+    first := ["Mary", "Joe", "Sandra"]
+    last := ["Smith", "Roberts"]
+
+then
+
+    every write(everycat(first, " ", last))
+
+writes
+
+    Mary Smith
+    Mary Roberts
+    Joe Smith
+    Joe Roberts
+    Sandra Smith
+    Sandra Roberts
+
+Note that x1, x2, ... can be any values for which !x1, !x2, ... produce strings or values convertible to strings. In particular, in the example above, the second argument is a one-character string " ", so that !" " generates a single blank.
+################################################################################
+File:
+expander.icn
+********************************************************************************
+Description:
+Procedures to convert character pattern expressions
+********************************************************************************
+Additional Notes:
+pfl2str(pattern) expands pattern-form expressions, which have the form
+
+    [<expr><op><expr>]
+
+to the corresponding string.
+
+The value of <op> determines the operation to be performed.
+
+    pfl2gxp(pattern) expands pattern-form expressions into generators that, when compiled and evaluated, produce the corresponding string.
+
+    pfl2pwl(pattern) converts pattern-form expressions to Painter's weaving language.
+################################################################################
+File:
+exprfile.icn
+********************************************************************************
+Description:
+Procedures to produce programs on the fly
+********************************************************************************
+Additional Notes:
+    exprfile(exp, link, ...)
+            produces a pipe to a program that writes all the results generated by exp. The trailing arguments name link files needed for the expression.
+
+            exprfile() closes any previous pipe it opened and deletes its temporary file. Therefore, exprfile() cannot be used for multiple expression pipes.
+
+            If the expression fails to compile, the global expr_error is set to 1; otherwise 0.
+
+    exec_expr(expr_list, links[])
+            generates the results of executing the expression contained in the lists expr_list with the specified links.
+
+    plst2pstr(L)
+            converts the list of Icon programs lines in L to a string with separating newlines.
+
+    pstr2plst(s)
+            converts the string of Icon program lines (separated by newlines) to a list of lines.
+
+    ucode(file)
+            produces a ucode file from the Icon program in file.
 ################################################################################
 ################################################################################
 ################################################################################
