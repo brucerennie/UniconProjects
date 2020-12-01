@@ -5,6 +5,7 @@
 # Author : Bruce Rennie                                                     #
 # Date   : 11-July-2013                                                     #
 # Update : 22-November-2015                                                 #
+# Update : 02-December-2020                                                 #
 #                                                                           #
 # Purpose: This provides a generalised object value and object algebra      #
 #          facility for use in other classes and objects. It is based       #
@@ -265,7 +266,7 @@ package ClassObject
 #: the Unicon language allows a better coding practice. We shall see if this
 #: attempt works in a practical way.
 #:
-class ClassClass : ClassObject(
+class ClassClass : ErrorSystem(
     New,                                #CV: This variable is initialised at sub-class
                                         #:   runtime to the associated class by the call
                                         #:   to SetClass. By default it is set to a dummy
@@ -411,6 +412,20 @@ class ClassClass : ClassObject(
             " New: ", ::image(::proc(New)))
         Off()
         return self
+    end
+
+    #MD:
+    #:
+    method ClassName(obj)
+        local   name                    #LV: temporary to hold the system classname
+                                        #:   for the current object
+
+        name := ::classname(obj)
+        #
+        # using the system classname, obtain the classname of the class that
+        # obj is associated with
+        #
+        return \ClassObject::ClassClass.__ObjectToClass[name]
     end
 
     ############################################################################
@@ -895,15 +910,7 @@ class ClassObject : ErrorSystem(
     #MD:
     #:
     method ClassName()
-        local   name                    #LV: temporary to hold the system classname
-                                        #:   for the current object
-
-        name := ::classname(self)
-        #
-        # using the system classname, obtain the classname of the class that this
-        # object is associated with
-        #
-        return \ClassObject::ClassClass.__ObjectToClass[name]
+        return \ClassObject::ClassClass.ClassName(self)
     end
 
     #MD:
