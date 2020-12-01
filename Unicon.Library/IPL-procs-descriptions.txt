@@ -1892,7 +1892,8 @@ It is designed to insert event-reporting code in Icon programs.
 Detail Description:
 --------------------------------------------------------------------------------
 Section:
-Bug:  The invocable declaration is not handled properly. "invocable all" will get by, but some other forms produce syntax errors. The problem is in the meta-variant translator itself, not in this program.
+Bug:
+The invocable declaration is not handled properly. "invocable all" will get by, but some other forms produce syntax errors. The problem is in the meta-variant translator itself, not in this program.
 --------------------------------------------------------------------------------
 Section:
     Alt(e1, e2)                 -   e1 | e2
@@ -2028,6 +2029,325 @@ Additional Notes:
 
     ucode(file)
             produces a ucode file from the Icon program in file.
+################################################################################
+File:
+factors.icn
+********************************************************************************
+Description:
+Procedures related to factors and prime numbers
+********************************************************************************
+Additional Notes:
+This file contains procedures related to factorization and prime numbers.
+
+    divisors(n)         generates the divisors of n.
+
+    factorial(n)        returns n!.  It fails if n is less than 0.
+
+    factors(i, j)       returns a list containing the prime factors of i limited to maximum value j; default, no limit.
+
+    genfactors(i, j)    like factors(), except factors are generated as they are found.
+
+    gfactorial(n, i)    generalized factorial; n x (n - i) x (n - 2i) x ...
+
+    ispower(i, j)       succeeds and returns root if i is k^j
+
+    isprime(n)          succeeds if n is a prime.
+
+    nxtprime(n)         returns the next prime number beyond n.
+
+    pfactors(i)         returns a list containing the primes that divide i.
+
+    prdecomp(i)         returns a list of exponents for the prime decomposition of i.
+
+    prime()             generates the primes.
+
+    primel()            generates the primes from a precompiled list.
+
+    primorial(i,j)      product of primes j <= i; j defaults to 1.
+
+    sfactors(i, j)      as factors(i, j), except output is in string form with exponents for repeated factors
+
+    squarefree(i)       succeeds if i is square free
+
+Notes:  Some of these procedures are not fast enough for extensive work. Factoring is believed to be a hard problem. factors() should only be used for small numbers.
+
+Requires: Large-integer arithmetic; prime.lst for primel() and primorial().
+################################################################################
+File:
+fastfncs.icn
+********************************************************************************
+Description:
+Procedures for integer functions using fastest method
+********************************************************************************
+Additional Notes:
+These procedures implement integer-valued functions using the fastest method known to the author. "Fastest" does not mean "fast".
+
+    acker(i, j)         Ackermann's function
+    fib(i)              Fibonacci sequence
+    g(k, i)             Generalized Hofstader nested recurrence
+    q(i)                "Chaotic" sequence
+    robbins(i)          Robbins numbers
+################################################################################
+File:
+feval.icn
+********************************************************************************
+Description:
+Procedure to evaluate string as function call
+********************************************************************************
+Additional Notes:
+This procedure analyzes a string representing an Icon function or procedure call and evaluates the result.
+
+It assumes the string is well-formed.  The arguments can only be Icon literals. Escapes, commas, and parentheses in strings literals are not handled.
+################################################################################
+File:
+filedim.icn
+********************************************************************************
+Description:
+Procedure to compute file dimensions
+********************************************************************************
+Additional Notes:
+filedim(s, p) computes the number of rows and maximum column width of the file named s. The procedure p, which defaults to detab, i applied to each line. For example, to have lines left as is, use
+
+    filedim(s, 1)
+################################################################################
+File:
+filenseq.icn
+********************************************************************************
+Description:
+Procedure to get highest numbered filename in a sequence
+********************************************************************************
+Additional Notes:
+This procedure is useful when you need to create the next file in a series of files (such as successive log files).
+
+Usage:
+
+    fn := nextseqfilename( ".", "$", "log")
+
+returns the (non-existent) filename next in the sequence .\$*.log (where the * represents 1, 2, 3, ...) or fails
+
+################################################################################
+File:
+filesize.icn
+********************************************************************************
+Description:
+Procedure to get the size of a file
+********************************************************************************
+Additional Notes:
+    filesize(s)         returns the number of characters in the file named s; it fails if s cannot be opened.
+################################################################################
+File:
+findre.icn
+********************************************************************************
+Description:
+Procedure to find regular expression
+********************************************************************************
+Additional Notes:
+    findre() is like the Icon builtin function find(), except that it takes, as its first argument, a regular expression pretty much like the ones the Unix egrep command uses (the few minor differences are listed below). Its syntax is the same as find's (i.e. findre(s1,s2,i,j)), with the exception that a no-argument invocation wipes out all static structures utilized by findre, and then forces a garbage collection.
+
+(For those not familiar with regular expressions and the Unix egrep command: findre() offers a simple and compact wildcard-based search system. If you do a lot of searches through text files, or write programs which do searches based on user input, then findre is a utility you might want to look over.)
+
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+IMPORTANT DIFFERENCES between find and findre:
+As noted above, findre() is just a find() function that takes a regular expression as its first argument.  One major problem with this setup is that it leaves the user with no easy way to tab past a matched substring, as with
+
+    s ? write(tab(find("hello")+5))
+
+In order to remedy this intrinsic deficiency, findre() sets the global variable __endpoint to the first position after any given match occurs. Use this variable with great care, preferably assigning its value to some other variable immediately after the match (for example, findre("hello [.?!]*",s) & tmp := __endpoint). Otherwise, you will certainly run into trouble.  (See the example below for an illustration of how __endpoint is used).
+--------------------------------------------------------------------------------
+Section:
+IMPORTANT DIFFERENCES between egrep and findre:
+findre utilizes the same basic language as egrep. The only big difference is thatfindre uses intrinsic Icon data structures and escaping conventions rather than those of any particular Unix variant. Be careful!  If you put findre("\(hello\)",s) into your source file, findre will treat it just like findre("(hello)",s). If, however, you enter '\(hello\)' at run-time (via, say, findre(!&input,s)), what Icon receives will depend on your operating system (most likely, a trace will show "\\(hello\\)").
+
+It is designed to insert event-reporting code in Icon programs.
+--------------------------------------------------------------------------------
+Section:
+BUGS:
+Space has essentially been conserved at the expense of time in the automata produced by findre(). The algorithm, in other words, will produce the equivalent of a pushdown automaton under certain circumstances, rather than strive (at the expense of space) for full determinism. I tried to make up a nfa -> dfa converter that would only create that portion of the dfa it needed to accept or reject a string, but the resulting automaton was actually quite slow (if anyone can think of a way to do this in Icon, and keep it small and fast, please let us all know about it). Note that under version 8 of Icon, findre takes up negligible storage space, due to the much improved hashing algorithm.  I have not tested it under version 7, but I would expect it to use up quite a bit more space in that environment.
+--------------------------------------------------------------------------------
+Section:
+IMPORTANT NOTE:
+Findre takes a shortest-possible-match approach to regular expressions. In other words, if you look for "a*", findre will not even bother looking for an "a." It will just match the empty string.  Without this feature, findre would perform a bit more slowly. The problem with such an approach is that often the user will want to tab past the longest possible string of matched characters (say tab((findre("a*|b*"), __endpoint)). In circumstances like this, please just use something like:
+
+        s ? {
+            tab(find("a")) &  # or use Arb() from the IPL (patterns.icn)
+            tab(many('a'))
+            tab(many('b'))
+        }
+
+or else use some combination of findre and the above.
+--------------------------------------------------------------------------------
+Section:
+REGULAR EXPRESSION SYNTAX:
+Regular expression syntax is complex, and yet simple. It is simple in the sense that most of its power is concentrated in about a dozen easy-to-learn symbols. It is complex in the sense that, by combining these symbols with characters, you can represent very intricate patterns.
+
+I make no pretense here of offering a full explanation of regular expressions, their usage, and the deeper nuances of their syntax. As noted above, this should be gleaned from a Unix manual. For quick reference, however, I have included a brief summary of all the special symbols used, accompanied by an explanation of what they mean, and, in some cases, of how they are used (most of this is taken from the comments prepended to Jerry Nowlin's Icon-grep command, as posted a couple of years ago):
+
+        ^   -   matches if the following pattern is at the beginning of a line (i.e. ^# matches lines beginning with "#")
+        $   -   matches if the preceding pattern is at the end of a line
+        .   -   matches any single character
+        +   -   matches from 1 to any number of occurrences of the previous expression (i.e. a character, or set of parenthesized/bracketed characters)
+        *   -   matches from 0 to any number of occurrences of the previous expression
+        \   -   removes the special meaning of any special characters recognized by this program (i.e if you want to match lines beginning with a "[", write ^\[, and not ^[)
+        |   -   matches either the pattern before it, or the one after it (i.e. abc|cde matches either abc or cde)
+        []  -   matches any member of the enclosed character set, or, if ^ is the first character, any nonmember of the enclosed character set (i.e. [^ab] matches any character except a and b).
+        ()  -   used for grouping (e.g. ^(abc|cde)$ matches lines consisting of either "abc" or "cde," while ^abc|cde$ matches lines either beginning with "abc" or ending in "cde")
+--------------------------------------------------------------------------------
+Section:
+EXAMPLE program:
+
+    procedure main(a)
+        while line := !&input do {
+            token_list := tokenize_line(line,a[1])
+            every write(!token_list)
+        }
+    end
+
+    procedure tokenize_line(s,sep)
+        tmp_lst := []
+        s ? {
+            while field := tab(findre(sep)|0) & mark := __endpoint do {
+                put(tmp_lst,"" ~== field)
+                if pos(0) then break
+                else tab(mark)
+            }
+        }
+        return tmp_lst
+    end
+
+The above program would be compiled with findre (e.g. "icont test_prg.icn findre.icn") to produce a single executable which tokenizes each line of input based on a user-specified delimiter. Note how __endpoint is set soon after findre() succeeds. Note also how empty fields are excluded with "" ~==, etc. Finally, note that the temporary list, tmp_lst, is not needed.  It is included here merely to illustrate one way in which tokens might be stored.
+
+Tokenizing is, of course, only one of many uses one might put findre to. It is very helpful in allowing the user to construct automata at run-time. If, say, you want to write a program that searches text files for patterns given by the user, findre would be a perfect utility to use. Findre in general permits more compact expression of patterns than one can obtain using intrinsic Icon scanning facilities. Its near complete compatibility with the Unix regexp library, moreover, makes for greater ease of porting, especially in cases where Icon is being used to prototype C code.
+################################################################################
+File:
+ftype.icn
+********************************************************************************
+Description:
+Procedure to produce type for file
+********************************************************************************
+Additional Notes:
+This procedure returns the file identification produced by file(1).
+################################################################################
+File:
+fullimag.icn
+********************************************************************************
+Description:
+Procedures to produce complete image of structured data
+********************************************************************************
+Additional Notes:
+    fullimage() -- enhanced image()-type procedure that outputs all data contained in structured types. The "level" argument tells it how far to descend into nested structures (defaults to unlimited).
+################################################################################
+File:
+gauss.icn
+********************************************************************************
+Description:
+Procedures to compute Gaussian distributions
+********************************************************************************
+Additional Notes:
+    gauss_random(x, f) produces a Gaussian distribution about the value x. The value of f can be used to alter the shape of the Gaussian distribution (larger values flatten the curve...)
+################################################################################
+File:
+gdl.icn
+********************************************************************************
+Description:
+Procedures to get directory lists
+********************************************************************************
+Additional Notes:
+Gdl returns a list containing everything in a directory (whose name must be passed as an argument to gdl). Nothing fancy. I use this file as a template, modifying the procedures according to the needs of the program in which they are used.
+################################################################################
+File:
+gdl2.icn
+********************************************************************************
+Description:
+Procedures to get directory lists
+********************************************************************************
+Additional Notes:
+Gdl returns a list containing everything in a directory (whose name must be passed as an argument to gdl). Nothing fancy. I use this file as a template, modifying the procedures according to the needs of the program in which they are used.
+
+NOTE: MSDOS results are all in lower case
+
+Modifications:
+    1) Fixed MSDOS routines.
+    2) Added gdlrec which does same thing as gdl except it recursively descendsthrough subdirectories. May choose which Unix utility to use by passing in method parameter.
+################################################################################
+File:
+gedcom.icn
+********************************************************************************
+Description:
+Procedures for reading GEDCOM files
+********************************************************************************
+Additional Notes:
+These procedures read and interpret GEDCOM files, a standard format for genealogy databases.
+********************************************************************************
+Detail Description:
+--------------------------------------------------------------------------------
+Section:
+    gedload(f)      loads GEDCOM data from file f and returns a gedcom record containing the following fields:
+        tree        root of tree of gednode records
+        id          table of labeled nodes, indexed by @ID@
+        fam         list of FAM nodes (marriages)
+        ind         list of INDI nodes (individuals)
+
+The tree is composed of gednode records R containing these fields:
+        level       level
+        id          ID (label), including @...@ delimiters
+        tag         tag
+        data        data
+        lnum        line number
+        parent      parent node in tree
+        ref         referenced node, if any
+        sub         sub-entry list
+        hcode       unique hashcode, if INDI node
+--------------------------------------------------------------------------------
+Section:
+    gedwalk(tree) generates the nodes of the tree in preorder.
+
+Three procedures find descendants of a node based on a sequence of identifying tag strings:
+        gedsub(R, tag...) generates subnodes specified by tag sequence
+        gedval(R, tag...) generates data values of those subnodes
+        gedref(R, tag...) generates nodes referenced by those subnodes
+
+Three procedures extract a person's name from an INDI record:
+        gedfnf(R)   produces "John Quincy Adams" form
+        gedlnf(R)   produces "Adams, John Quincy" form
+        gednmf(R,f) produces an arbitrary format, substituting prefix, firstname, lastname, suffix for "P", "F", "L", "S" (respectively) in f
+--------------------------------------------------------------------------------
+Section:
+    geddate(R) finds the DATE subnode of a node and returns a string of at least 12 characters in a standard form such as "11 Jul 1767" or "abt 1810".  It is assumed that the input is in English.
+
+    gedyear(r) get year from event record
+--------------------------------------------------------------------------------
+Section:
+    gedfind(g,s) generates the individuals under gedcom record g that are named by s, a string of whitespace-separated words.
+
+    gedfind()  generates each INDI node for which every word of s is matched by either a word of the individual's name or by the birth year.  Matching is case-insensitive.
+--------------------------------------------------------------------------------
+Section:
+    gedscan(f) scan one line of a GEDCOM record, returning gednode record
+--------------------------------------------------------------------------------
+Section:
+    gedhi(r)   generate hashcode for individual record. The hashcode uses two initials, final digits of birth year, and a 3-letter hashing of the full name and birthdate fields.
+
+    gedh3a(s)  hash arbitrary string into three alphabetic characters
+--------------------------------------------------------------------------------
+Section:
+    gedmatch(r, s)  match record against name. s is a string of words to match name field and/or birth year. Matching is case sensitive.
+--------------------------------------------------------------------------------
+Section:
+    gedlcw(s, c) -- generate words from string s separated by chars from c. words are mapped to lower-case to allow case-insensitive comparisons
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
 ################################################################################
 ################################################################################
 ################################################################################
