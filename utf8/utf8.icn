@@ -2709,6 +2709,7 @@ class UTF8 : ClassClass(
         #
         /str & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 Object/value")
         /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        (not ::numeric(i)) & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(i))
         return Subsection(str, i, i + 1)
     end
 

@@ -898,7 +898,6 @@ class ClassObject : ErrorSystem(
         DebugPrint("methname: ", methname, " --> ", ::image(\self.__m[methname]))
         DebugPrint("params[]:", ::image(params))
         if \self.__m[methname] then {
-            #DebugPrint("self.__m:", ::ximage(self.__m))
             return self.__m[methname] ! ::push(params, self)
         } else if \__operator_overload then {
             fail
