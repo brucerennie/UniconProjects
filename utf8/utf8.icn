@@ -503,7 +503,7 @@ class UTF8 : ClassClass(
     __UTF8InvalidChar,                  #CV: This is an UTF-8 value object and
                                         #:   not a Unicon string. It represents
                                         #:   the invalid byte string to be used
-                                        #:   when invalid bytes arefound in the
+                                        #:   when invalid bytes are found in the
                                         #:   UTF-8 string when being processed.
 
     __UTF8Max,                          #CV: This holds the maximum integer value that
@@ -511,7 +511,8 @@ class UTF8 : ClassClass(
                                         #:   At this point, this is integer
                                         #:   representation of the hex value
                                         #:   U+10FFFF.
-    __SpecialUTF8Strings                #CV: This holds a table of special UTF-8 cosepoint strings
+
+    __SpecialUTF8Strings                #CV: This holds a table of special UTF-8 codepoint strings
                                         #:   that really only need to be created
                                         #:   once. This includes each of the
                                         #:   printable ASCII characters, the entire
@@ -532,7 +533,7 @@ class UTF8 : ClassClass(
     #: after the class is initially called.
     #:
     #:@params           none
-    #:@return           always fails
+    #:@returns          always fails
     #:
     method __Initialise()
         local   charlist,               #LV: a string containing all available bytes
@@ -545,13 +546,15 @@ class UTF8 : ClassClass(
             # characters available in unicon/icon.
             #
             charlist := ::string(&cset)
+
             #
             # table holding code point sizes, continuation bytes marked as -1,
             # invalid bytes as 0
             #
             __UTF8SizeTable := ::table()
+
             #
-            # initialise the table to a consistent state for all ASCII byte values.
+            # initialise this table to a consistent state for all ASCII byte values.
             # the subsequent processing will set each range of characters to the
             # relevant code point size. At this point, we only allow up to 4
             # bytes to be available for any UTF-8 codepoint.
@@ -563,26 +566,32 @@ class UTF8 : ClassClass(
             # This will ensure that all invalid bytes will be set properly.
             #
             every __UTF8SizeTable[charlist[1 to 256]] := 0       # \x00 -> \xFF
+
             #
             # These bytes are for the ASCII values (1 byte encodings)
             #
             every __UTF8SizeTable[charlist[1 to 128]] := 1       # \x00 -> \x7F
+
             #
             # all continuation bytes will have values in this range only
             #
             every __UTF8SizeTable[charlist[129 to 192]] := -1    # \x80 -> \xBF
+
             #
             # These are the start bytes for 2 byte encodings
             #
             every __UTF8SizeTable[charlist[195 to 224]] := 2     # \xC2 -> \xDF
+
             #
             # These are the start bytes for 3 byte encodings
             #
             every __UTF8SizeTable[charlist[225 to 240]] := 3     # \xE0 -> \xEF
+
             #
             # These are the start bytes for 4 byte encodings
             #
             every __UTF8SizeTable[charlist[241 to 245]] := 4     # \xF0 -> \xF5
+
             #
             # used for counting UTF-8 characters in string, those ASCII bytes that
             # do not contribute to a valid code point will have a count set to 0,
@@ -596,6 +605,7 @@ class UTF8 : ClassClass(
             every __UTF8CountTable[charlist[195 to 224]] := 1    # \xC2 -> \xDF
             every __UTF8CountTable[charlist[225 to 240]] := 1    # \xE0 -> \xEF
             every __UTF8CountTable[charlist[241 to 245]] := 1    # \xF0 -> \xF5
+
             #
             # used for validation of bytes found for UTF-8 code points, each list
             # value is a list of lists, where the inner lists specify the start
@@ -613,6 +623,7 @@ class UTF8 : ClassClass(
             __UTF8LimitTable[2] := [["\xC2", "\xDF"], ["\x80", "\xBF"]]
             __UTF8LimitTable[3] := [["\xE0", "\xEF"], ["\x80", "\xBF"], ["\x80", "\xBF"]]
             __UTF8LimitTable[4] := [["\xF0", "\xF5"], ["\x80", "\xBF"], ["\x80", "\xBF"], ["\x80", "\xBF"]]
+
             #
             # Initialise the __SpecialUTF8Strings to hold a table
             #
@@ -622,6 +633,7 @@ class UTF8 : ClassClass(
                 __SpecialUTF8Strings[i] := UTF8::UTF8.New(i)
             }
             __SpecialUTF8Strings[charlist] := UTF8::UTF8.New(charlist)
+
             #
             # UTF-8 Byte Order Mark, optional value that can appear at start of
             # UTF-8 file. This is an otherwise invalid combination for a UTF-8
@@ -629,17 +641,20 @@ class UTF8 : ClassClass(
             #
             __UTF8BOM := SpecialString("\xEF\xBB\xBF")
             DebugPrint("__UTF8BOM:", ::image(__UTF8BOM))
+
             #
             # This encoding will be used to replace any invalid byte sequences
             #
             __UTF8InvalidChar := SpecialString("\xEF\xBF\xBD")
             DebugPrint("__UTF8InvalidChar:", ::image(__UTF8InvalidChar))
+
             #
             # we want a string that contains each ASCII character in the underlying
             # unicon/icon virtual machine. This string will have the full 256
             # characters available in unicon/icon.
             #
             charlist := ::string(&cset)
+
             #
             # Since only half of the full byte values are actual ASCII, the other
             # half has the highest order bit is set and this will be represented
@@ -647,22 +662,26 @@ class UTF8 : ClassClass(
             #
             DebugPrint("Creating the Byte Translate table")
             __ByteTranslate := ::table()
+
             #
             # translate the first 128 7 bit ASCII (\x00 to \x7F) to corresponding
             # 7 bit ASCII
             #
             every __ByteTranslate[charlist[i := 1 to 128]] := charlist[i]
+
             #
             # for the next 64 byte values (\x80 to \xBF) need the leading byte to
             # be \xC2 and the following byte to be from \x80 to \xBF
             #
             every __ByteTranslate[charlist[i := 129 to 192]] := "\xC2" || char(i - 1)
+
             #
             # for the final 64 byte values (\xC0 to \xFF) need the leading byte to
             # be \xC3 and the following byte to be from \x80 to \xBF
             #
             every __ByteTranslate[charlist[i := 193 to 256]] := "\xC3" || char(i - 65)
             DebugPrint("Creating the Byte Translate table has finished")
+
             #
             # Initialise the maximum value for a UTF-8 codepoint. If the standard
             # changes and allows more encoding sequences, this is the value that
@@ -682,6 +701,8 @@ class UTF8 : ClassClass(
     #   __ActualPos                             integer
     #   __Coerce                                UTF-8 string object
     #   __GetAt                                 UTF-8 string object
+    #   __AuxMessage                            error message text based on error
+    #                                           number and message number
     #
     ###########################################################################
 
@@ -698,9 +719,9 @@ class UTF8 : ClassClass(
     #:@param ustr       the UTF-8 string we are looking at
     #:@param i          the position in the UTF-8 string that we are interested
     #:@                 in. This position treats multi-byte codepoint as if they
-    #:@                 are an indivisible unit. If it is negative or 0, it is referring
+    #:@                 are an indivisible unit. If it is negative or 0, it is
     #:@                 referring to the RHS of the supplied string.
-    #:@return           the actual position of the first byte of the codepoint
+    #:@returns          the actual position of the first byte of the codepoint
     #:@                 as it would be if the UTF-8 string was treated as a normal
     #:@                 ASCII byte string
     #:
@@ -717,31 +738,42 @@ class UTF8 : ClassClass(
                 s                       #LV: temporary to hold the size of the
                                         #:   supplied UTF-8 object in codepoints
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          __AuxMessage(101))
+
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
         #
         # we assume that the supplied string is always going to be an actual
         # UTF-8 object. So we just select out the actual data associated with
         # the UTF-8 object.
         #
         data := ustr.String()
+
         #
         # if debugging is On, we want to see the actual data from the UTF-8 object
         # otherwise this is a null operation.  ::ximage() will display the string
         # data is a format that shows all non-printing bytes as hex numbers
         #
         DebugPrint("data:", ::ximage(data))
+
         #
         # we need to have the size of the UTF-8 string in codepoints for the
         # translation of codepoint position to byte position in the string
         #
         s := ustr.Size()
+
         #
         # if debugging is on, we want to see the size of the string as well as
         # the specified position in the string
         #
         DebugPrint("s:", s, "\n",
                    "i:", i)
+
         #
         # if the position has been specified as less than or equal to 0, we need to
         # convert this value to the position as referenced from the start (LHS)
@@ -749,11 +781,13 @@ class UTF8 : ClassClass(
         # string
         #
         (i < 1) & i := s + 1 + i
+
         #
         # if debugging is on, we want to know what this position value is in terms
         # of the start of the string, otherwise this is a null operation
         #
         DebugPrint("i:", i)
+
         #
         #
         # To determine the real byte position, we need to step through each
@@ -770,6 +804,7 @@ class UTF8 : ClassClass(
             k +:= 1
             j +:= __UTF8CountTable[data[k]]
         }
+
         #
         # if debugging is On, we want to see the position we asked for, the
         # original position we asked for, the position we reached and the actual
@@ -788,16 +823,20 @@ class UTF8 : ClassClass(
     #: already a UTF-8 string object, just return that supplied value
     #:
     #:@param            any unicon value of object
-    #:@return           if it is already an UTF-8 string object, just return
+    #:@returns          if it is already an UTF-8 string object, just return
     #:@                 the supplied value, otherwise try and create a new
     #:@                 UTF-8 string object from the supplied value
-    #:@error            will occur if the supplied value cannot be converted
+    #:@aborts           will occur if the supplied value cannot be converted
     #:@                 to a UTF-8 string object
     #:
     method __Coerce(val)
-        DebugPrint("level of __Coerce(", &level, ") type of val: ", ::type(val), " value of val: ", ::image(val))
+        DebugPrint("level of __Coerce(", &level, ") type of val: ", ::type(val),
+                   " value of val: ", ::image(val))
         DebugPrint("level of __Coerce(", &level, ") class of val: ", ::classname(val) | "none")
-        /val & AbortMessage(2000, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+
+        /val & AbortMessage(2000, keyword("&file", , 1), keyword("&line", , 1),
+                                        __AuxMessage(2000))
+
         if IsObjectOf(val, "UTF8") then {
             DebugPrint("return val:", ::image(val))
             return val
@@ -826,7 +865,7 @@ class UTF8 : ClassClass(
     #:@                 in finishing at. This position treats multi-byte codepoint
     #:@                 as if they are an indivisible unit. If it is negative or 0,
     #:@                 it is referring to the RHS of the supplied string.
-    #:@return           a new UTF-8 string object containing the codepoints
+    #:@returns          a new UTF-8 string object containing the codepoints
     #:@                 between the specified endpoints
     #:
     method __GetAt(ustr, i, j)
@@ -842,25 +881,30 @@ class UTF8 : ClassClass(
                 data                    #LV: temporary to hold the actual byte
                                         #:   data of the supplied UTF-8 string
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
         #
         # if debugging is On, we would like to see what the raw string data in
         # the supplied UTF-8 string object actually is, otherwise this is a null
         # operation.  ::ximage() will display the string
         # data is a format that shows all non-printing bytes as hex numbers
         #
-        DebugPrint("ustr:", ::image(ustr), " String():", ::image(ustr.String()), " Size():", ustr.Size())
+        DebugPrint("ustr:", ::image(ustr), " String():", ::image(ustr.String()),
+                   " Size():", ustr.Size())
+
         #
         # we need the size of the supplied UTF-8 string object as we may need to
         # calculate the correct codepoint positions, if they were supplied starting
         # from the RHS, i.e., the positions are less than 0
         #
         k := ustr.Size()
+
         #
         # the default if no parameter is supplied will be 1 (as per all of the
         # normal unicon/icon string functions) for position i
         #
         /i := 1
+
         #
         # we convert a negative i to a position from the LHS of the string. This
         # needs to be done before doing any calculation on j when j is &null. If
@@ -869,24 +913,29 @@ class UTF8 : ClassClass(
         # This situation will occur if the value of i = 0
         #
         (i <= 0) & i := k + i + 1
+
         #
         # the default if no parameter is supplied will be the position following
         # whatever value is now in i. This means that only one codepoint is being
         # returned
         #
         /j := i + 1
+
         #
         # we convert any negative j to a position from the LHS of the string
         #
         (j <= 0) & j := k + j + 1
+
         #
         # if i is greater than j we need to swap the values
         #
         (i > j) & (i :=:j)
+
         #
         # if i is equal to j, there is nothing to do and we should fail
         #
         (i = j) & fail
+
         #
         # if debugging is On, we want to see the size of the UTF-8 string object in
         # codepoints and the starting and ending positions applicable, otherwise
@@ -895,11 +944,13 @@ class UTF8 : ClassClass(
         DebugPrint("k:", k, "\n",
                    "j:", j, "\n",
                    "i:", i)
+
         #
         # At this point both i and j must be between the starting and ending
         # positions of the UTF-8 string, otherwise we want to fail
         #
         ((i | j) <= (k + 1)) | fail
+
         #
         # we now need to find the actual position in terms of bytes (unicon
         # characters) for both i and j, we will store each of these positions
@@ -907,17 +958,20 @@ class UTF8 : ClassClass(
         #
         i1 := __ActualPos(ustr, i)
         j1 := __ActualPos(ustr, j)
+
         #
         # if debugging is On, we want to see what these actual positions are,
         # otherwise this is a null action
         #
         DebugPrint("i1:", i1, "\n",
                    "j1:", j1)
+
         #
         # we now need the raw data from the UTF-8 string object, from which we
         # will extract the required bytes
         #
         data := ustr.String()
+
         #
         # if debugging is On, we want to see the raw data and the actual size
         # (in bytes) of this data, as well as the start and end points for
@@ -929,21 +983,58 @@ class UTF8 : ClassClass(
                    "*data:", *data, "\n",
                    "i1:", i1, "\n",
                    "j1:", j1)
+
         #
         # grab the sub-string required, we use this to create a new UTF-8 string
         #
         data := data[i1:j1]
+
         #
         # if debugging is On, we would like to see the actual extracted data,
         # otherwise this is a null action. ::ximage() will display the string
         # data is a format that shows all non-printing bytes as hex numbers
         #
         DebugPrint("data:", ::ximage(data))
+
         #
         # using the selected bytes, we will return a new UTF-8 string object
         # to th calling expression
         #
         return UTF8::UTF8.New(data)
+    end
+
+    #MD:
+    #: __AuxMessage(errorno, messageno)
+    #:
+    #:
+    method __AuxMessage(errorno, messageno)
+        static  ErrorMessages           #SV: table holding error messages for error
+                                        #:   numbers used in UFT8/UTF8Set aborts
+
+        initial {
+            ErrorMessages := ::table()
+
+            ErrorMessages[103 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value."
+            ErrorMessages[103 || "-" || 2] := "\noffending value: "
+            ErrorMessages[103 || "-" || 3] := "\noffending value: &null_
+                                               \nMissing Unicon string value"
+            ErrorMessages[103 || "-" || 4] := "\noffending value: &null_
+                                               \nMissing Unicon integer value or Unicon string value"
+            ErrorMessages[104 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+            ErrorMessages[104 || "-" || 2] := "\noffending value: &null"
+            ErrorMessages[110 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value."
+            ErrorMessages[113 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value."
+            ErrorMessages[120 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+            ErrorMessages[2000 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value."
+        }
+        /messageno := 1
+        return \ErrorMessages[errorno || "-" || messageno] | \(self$ClassClass.__AuxMessage(errorno, messageno))
     end
 
     #### Completed ####
@@ -955,10 +1046,10 @@ class UTF8 : ClassClass(
     #:@param str        str - this can be any value that can be coerced into a
     #:@                 UTF-8 sequence (string). Typical use will be a UTF-8
     #:@                 sequence
-    #:@return           if the value of __UTF8BOM is found at the start then we
+    #:@returns          if the value of __UTF8BOM is found at the start then we
     #:@                 will return this UTF-8 object
-    #:@fail             fails if no byte order mark is found
-    #:@abort            if a value cannot be coerced to a UTF-8 object (103 - not a string)
+    #:@fails            fails if no byte order mark is found
+    #:@aborts           if a value cannot be coerced to a UTF-8 object (103 - not a string)
     #:
     method BOMFound(str)
         local   str1                    #LV: temporary to hold the coerced value.
@@ -971,7 +1062,9 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(103))
+
         #
         # coerce the value supplied into a UTF-8 string object. The coerced value
         # is placed in a new variable to ensure that the original value/variable
@@ -979,6 +1072,7 @@ class UTF8 : ClassClass(
         # is performed with a value of 103 - "not a string"
         #
         str1 := __Coerce(str)
+
         #
         # return the byte order mark as a UTF-8 object value by checking the str byte
         # data against the BOM byte data, otherwise fail
@@ -997,10 +1091,10 @@ class UTF8 : ClassClass(
     #:
     #:@param str        any value, though usually a unicon string or a UTF-8
     #:@                 object
-    #:@return           a UTF-8 object that has had any byte order mark removed. If
+    #:@returns          a UTF-8 object that has had any byte order mark removed. If
     #:@                 the original supplied UTF-8 string has no BOm, then it is
     #:@                 returned
-    #:@abort            if a value cannot be coerced to a UTF-8 object (103 - not a string)
+    #:@aborts           if a value cannot be coerced to a UTF-8 object (103 - not a string)
     #:
     method SkipBOM(str)
         local   str1,                   #LV: temporary to hold the coerced value.
@@ -1016,7 +1110,8 @@ class UTF8 : ClassClass(
                 str2                    #LV: temporary to hold the result data
                                         #:   sans BOM. This is an Unicon string value
 
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(103))
         #
         # coerce the value supplied into a UTF-8 object. The coerced value
         # is placed in a new variable to ensure that the original value/variable
@@ -1024,12 +1119,14 @@ class UTF8 : ClassClass(
         # is performed with a value of 103 - "not a string"
         #
         str1 := __Coerce(str)
+
         #
         # if the debugging is turned On, display the value of the coerced string
         # data. Otherwise this is a null action.  ::ximage() will display the string
         # data in a format that shows all non-printing bytes as hex numbers
         #
         DebugPrint("str1.String():", ::ximage(str1.String()))
+
         #
         # search for a byte order mark and skip if found, return the resultant data
         #
@@ -1040,6 +1137,7 @@ class UTF8 : ClassClass(
             # occur.
             #
             =(__UTF8BOM.String())
+
             #
             # This assignment will depend on the starting value which will be
             # found in &pos and the end of the string
@@ -1052,6 +1150,7 @@ class UTF8 : ClassClass(
         # data is a format that shows all non-printing bytes as hex numbers
         #
         DebugPrint("str2:", ::ximage(str2))
+
         #
         # return this data as a new UTF-8 string object to the calling expression.
         # This ensures that the immutable semantics for normal strings is the
@@ -1082,9 +1181,9 @@ class UTF8 : ClassClass(
     #:
     #:@param str        the value being tested for UTF-8 codepoints. If it is not
     #:@                 a UTF-8 object, an attempt to coerce it into one will be done
-    #:@return           if it contains only valid UTF-8 codepoints, the raw data
+    #:@returns          if it contains only valid UTF-8 codepoints, the raw data
     #:@                 will returned
-    #:@fail             if any sequence of bytes is not a valid codepoint
+    #:@fails            if any sequence of bytes is not a valid codepoint
     #:
     method Valid(str)
         local   i,                      #LV: temporary to hold number of bytes
@@ -1124,7 +1223,9 @@ class UTF8 : ClassClass(
                 data                    #LV: temporary to hold string ot UTF8 String()
                                         #:   data value
 
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(103))
+
         #
         # we coerce the supplied parameter first. The coerced value
         # is placed in a new variable to ensure that the original value/variable
@@ -1133,6 +1234,7 @@ class UTF8 : ClassClass(
         #
         #local_str := __Coerce(str)
         DebugPrint("type of str: ", ::type(str), " value of str: ", ::image(str))
+
         data := if ::type(str) == "string" then {
             str
         } else if IsObjectOf(str, "UTF8") then {
@@ -1142,9 +1244,12 @@ class UTF8 : ClassClass(
         } else if ::string(str) then {
             ::string(str)
         } else {
-            AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", ::image(str))
+            AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                         __AuxMessage(103, 2), ::image(str))
         }
+
         DebugPrint("type of data: ", ::type(data), " value of data:", ::image(data))
+
         #
         # we will now scan and test each byte to ensure that it belongs to a
         # valid UTF-8 codepoint
@@ -1157,6 +1262,7 @@ class UTF8 : ClassClass(
             # data is a format that shows all non-printing bytes as hex numbers
             #
             DebugPrint("data:", ::ximage(data))
+
             #
             # while we have not reached the end of the byte string, we need to
             # check each codepoint and each byte within the codepoint for validity
@@ -1168,6 +1274,7 @@ class UTF8 : ClassClass(
                 # byte sequence.
                 #
                 byte := ::move(1)
+
                 #
                 # if debugging is On, print the byte that we have just found,
                 # otherwise if debugging is Off, this will be a null operation.
@@ -1176,6 +1283,7 @@ class UTF8 : ClassClass(
                 # data is a format that shows all non-printing bytes as hex numbers
                 #
                 DebugPrint("byte:", ::ximage(byte))
+
                 #
                 # using the byte found, we obtain how big the codepoint in bytes
                 # will be. We recognise that the byte we are currently examining
@@ -1196,6 +1304,7 @@ class UTF8 : ClassClass(
                     # have debugging turned on, otherwise it is a null operation
                     #
                     DebugPrint("*:", i, ":*")
+
                     #
                     # each size that a UTF-8 codepoint can have has a list of
                     # byte value limits for each byte within the codepoint. We
@@ -1203,6 +1312,7 @@ class UTF8 : ClassClass(
                     # codepoint size
                     #
                     limits := __UTF8LimitTable[i]
+
                     #
                     # We can see what the limits should be, when we are debugging
                     # this code, otherwise it is a null operation.  ::ximage()
@@ -1210,13 +1320,16 @@ class UTF8 : ClassClass(
                     # non-printing bytes as hex numbers
                     #
                     DebugPrint("l:", ::ximage(limits), ":l")
+
                     #
                     # We select the upper and lower byte limits for the first
                     # byte to be examined.
                     #
                     lowerbyte := limits[1, 1]
                     upperbyte := limits[1, 2]
+
                     DebugPrint("lowerbyte:", ::image(lowerbyte), " upperbyte:", ::image(upperbyte))
+
                     #
                     # as long as the byte is between the specified range limits
                     # we can then continue onto the following bytes, testing each
@@ -1232,6 +1345,7 @@ class UTF8 : ClassClass(
                                 fail
                             }
                         }
+
                     #
                     # the byte examined is outside the valid range for this length
                     # of codepoint bytes (that is 0 or -1), hence we must fail
@@ -1240,6 +1354,7 @@ class UTF8 : ClassClass(
                     } else {
                         fail
                     }
+
                 #
                 # An invalid starting byte has been found, this procedure must fail
                 # under this condition
@@ -1248,6 +1363,7 @@ class UTF8 : ClassClass(
                     fail
                 }
             }
+
             #
             # we only reach this point, if all codepoints found in the source are
             # valid UTF-8 codepoints. we return the UTF-8 string object we created
@@ -1258,7 +1374,7 @@ class UTF8 : ClassClass(
     end
 
     #MD:
-    #: ByteTranslate(byte) - translate the single byte give to the equivalent
+    #: ByteTranslate(byte) - translate the single byte given to the equivalent
     #: UTF-8 codepoint raw data value.
     #:
     method ByteTranslate(byte)
@@ -1266,13 +1382,16 @@ class UTF8 : ClassClass(
 
         IsOn()
         DebugPrint("byte:", ::ximage(byte))
+
         if ::type(byte) == ("string" | "cset") then {
             temp := ::string(byte)
             if *byte = 1 then {
-                DebugPrint("byte:", ::ximage(byte), " __ByteTranslate[", ::ximage(byte), "]:", ::ximage(__ByteTranslate[byte]))
+                DebugPrint("byte:", ::ximage(byte), " __ByteTranslate[",
+                           ::ximage(byte), "]:", ::ximage(__ByteTranslate[byte]))
                 return __ByteTranslate[byte]
             } else if *byte > 1 then {
-                DebugPrint("byte[1]:", ::ximage(byte[1]), " __ByteTranslate[", ::ximage(byte[1]), "]:", ::ximage(__ByteTranslate[byte[1]]))
+                DebugPrint("byte[1]:", ::ximage(byte[1]), " __ByteTranslate[",
+                           ::ximage(byte[1]), "]:", ::ximage(__ByteTranslate[byte[1]]))
                 return __ByteTranslate[byte[1]]
             } else {
                 fail
@@ -1293,7 +1412,7 @@ class UTF8 : ClassClass(
     #:
     #:@param codepoint  a string of one or more bytes which will be tested to see
     #:@                 if it is a valid multi-byte UTF-8 codepoint
-    #:@return           the standard UFT-8 object that represents the codepoint
+    #:@returns          the standard UFT-8 object that represents the codepoint
     #:@                 value supplied, if it is a single codepoint of 2 or
     #:@                 more bytes.
     #:@fails            if there are more than 1 codepoints or there is a single
@@ -1310,19 +1429,23 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /codepoint & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /codepoint & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                                  __AuxMessage(103))
+
         #
         # as a matter of course, we coerce the parameter into a UTF-8 object, if
         # the value cannot be coerced, it will cause a runtime abort with
         # 103 - not a string error code
         #
         local_codepoint := __Coerce(codepoint)
+
         #
         # if debugging is on, we can see what the byte/bytes are that are being
         # tested. Otherwise, it is a null action.  ::ximage() will display the string
         # data is a format that shows all non-printing bytes as hex numbers
         #
         DebugPrint("coerced parameter codepoint:", ::ximage(local_codepoint.String()))
+
         #
         # We want to ensure that there is only a single codepoint to be tested.
         # We do this as a precaution to ensure that any time we are testing for
@@ -1336,6 +1459,7 @@ class UTF8 : ClassClass(
             # a multi-byte codepoint and return codepoint or fail
             #
             return SpecialString(local_codepoint.String())
+
         #
         # otherwise we will fail on multiple codepoints or invalid codepoints
         #
@@ -1345,7 +1469,7 @@ class UTF8 : ClassClass(
     end
 
     #MD:
-    #: SpecialString(str) - this will return the special defined UTF-8 object
+    #: SpecialString(str) - this will return the specially defined UTF-8 object
     #: representing this string. If this is used appropriately, only one object will
     #: ever be created as the UTF-8 representation of this string.
     #:
@@ -1354,8 +1478,11 @@ class UTF8 : ClassClass(
     method SpecialString(str)
         local   temp                    #LV: temporary to hold raw data
 
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(103))
+
         (::type(str) == "string" & \__SpecialUTF8Strings[str] & return .__SpecialUTF8Strings[str])
+
         if temp := Valid(str) & /__SpecialUTF8Strings[str] then {
             return .(__SpecialUTF8Strings[temp] := UTF8::UTF8.New(temp))
         }
@@ -1384,7 +1511,7 @@ class UTF8 : ClassClass(
     #: Unicode 32 bit hex strings. (unicon strings)
     #:
     #:@param ustr       this is a string value to be converted
-    #:@suspend          a ASCII string representing the hex value of each codepoint
+    #:@suspends         a ASCII string representing the hex value of each codepoint
     #:@                 found in the UTF-8 string supplied
     method ToUnicode32(ustr)
         local   byte,                   #LV: temporary to hold the current byte
@@ -1418,7 +1545,9 @@ class UTF8 : ClassClass(
                 bytechar,               #LV: the character value of the byte found
                 bytestr                 #LV: the raw data for the codepoint
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # We need to coerce the supplied value to a UTF-8 string first. The coerced value
         # is placed in a new variable to ensure that the original value/variable
@@ -1426,6 +1555,7 @@ class UTF8 : ClassClass(
         # is performed with a value of 103 - "not a string"
         #
         local_ustr := __Coerce(ustr)
+
         #
         # for each codepoint in the supplied string, we need the integer value
         # of the first byte as well as the codepoint itself. If the string has
@@ -1439,6 +1569,7 @@ class UTF8 : ClassClass(
                 # table that was initialised on class creation.
                 #
                 bytecnt := __UTF8SizeTable[bytechar]
+
                 #
                 # using the byte count, we want to select out only those bits which
                 # are actually significant to the 32 bit value. See the discussion
@@ -1452,6 +1583,7 @@ class UTF8 : ClassClass(
                     1 : {
                         val := ::iand(16r7f, byte)
                     }
+
                     #
                     # for a 2 byte encoding, the last 5 bits are significant for the
                     # actual value of the character
@@ -1459,6 +1591,7 @@ class UTF8 : ClassClass(
                     2 : {
                         val := ::iand(16r1f, byte)
                     }
+
                     #
                     # for a 3 byte encoding, it is the last four bits that are
                     # significant to the actual value of the character
@@ -1466,6 +1599,7 @@ class UTF8 : ClassClass(
                     3 : {
                         val := ::iand(16rf, byte)
                     }
+
                     #
                     # for a 4 byte encoding, it is the last 3 bits that are
                     # significant for the actual value of the character
@@ -1473,6 +1607,7 @@ class UTF8 : ClassClass(
                     4 : {
                         val := ::iand(16r7, byte)
                     }
+
                     #
                     # this needs further investigation as to whether or not we should
                     # allow leading 0 bytes. In the Unicode documents there was some
@@ -1484,6 +1619,7 @@ class UTF8 : ClassClass(
                         val := 0
                     }
                 }
+
                 #
                 # for each additional byte of a multi-byte codepoint, we need to
                 # select out the significant bits from each byte and append this to
@@ -1497,11 +1633,13 @@ class UTF8 : ClassClass(
                         val := ::ishift(val, 6) + ::iand(16r3f, byte)
                     }
                 }
+
                 #
-                # we now use the IPL procedure to convert th collected bits to a
+                # we now use the IPL procedure to convert the collected bits into a
                 # hex-string
                 #
                 valo := ::hexstring(val,(bytecnt < 4 | 5))
+
                 #
                 # the final phase is the prepend the Unicode string designator to the
                 # hex-string and then suspend it back to the calling expression.
@@ -1526,8 +1664,8 @@ class UTF8 : ClassClass(
     #: valid integer number, the method will fail.
     #:
     #:@param unicode    string value representing a UTF-8 codepoint
-    #:@return           UTF-8 string object represented by the hexadecimal number
-    #:@fail             if integer is not a valid integer number, if the
+    #:@returns          UTF-8 string object represented by the hexadecimal number
+    #:@fails            if integer is not a valid integer number, if the
     #:@                 integer number is > 16r10FFFF, if the value supplied
     #:@                 cannot be converted to a unicon/icon integer
     #:
@@ -1542,14 +1680,15 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /unicode & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing Unicon string value")
+        /unicode & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                                __AuxMessage(103, 4))
+
         #
         # Since we have a method that will convert a hexadecimal code string to
         # the relevant UTF-8 string object. All we need do, is to strip off the
         # prefix value "U+" and use the resulting hexadecimal string value as
         # the parameter to the HexTo method to do the work for us
         #
-
         if local_unicode := ::string(\unicode) then {
             local_unicode := ::map(local_unicode, &lcase, &ucase)
             local_unicode ? {
@@ -1585,8 +1724,8 @@ class UTF8 : ClassClass(
     #: fail. If hexcode is not a valid hexadecimal number, the method will fail.
     #:
     #:@param hexcode    string value representing a hexadecimal number
-    #:@return           UTF-8 string object represented by the hexadecimal number
-    #:@fail             if hexcode is not a valid hexadecimal number, if the
+    #:@returns          UTF-8 string object represented by the hexadecimal number
+    #:@fails            if hexcode is not a valid hexadecimal number, if the
     #:@                 hexadecimal number is > 10FFFF, if the values supplied
     #:@                 cannot be converted to a unicon/icon string
     #:
@@ -1619,7 +1758,9 @@ class UTF8 : ClassClass(
                 c4                      #LV: temporary to hold the fourth byte,
                                         #:   if it exists
 
-        /hexcode & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing Unicon string value")
+        /hexcode & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                                __AuxMessage(103, 4))
+
         #
         # hexcode must be a string or a value convertible to a string
         #
@@ -1628,6 +1769,7 @@ class UTF8 : ClassClass(
             # for consistency purposes, convert all uppercase to lowercase letters
             #
             local_hexcode := ::map(local_hexcode, &lcase, &ucase)
+
             #
             # the value supplied must be a hexadecimal representation, so we use
             # the IPL hexcvt library procedure "hex" to do the conversion to the
@@ -1663,11 +1805,13 @@ class UTF8 : ClassClass(
                     # to select out the required low 7 bits
                     #
                     c1 := ::iand(16r7f, val)
+
                     #
                     # we now use this to get the required byte value which will
                     # be used later to create a UTF-8 string object.
                     #
                     valo := ::char(c1)
+
                 #
                 # we check for the two byte case (80 - 7FF)
                 #
@@ -1708,12 +1852,14 @@ class UTF8 : ClassClass(
                     #
                     c1 := ::ior(16rc0, ::ishift(::iand(16r7c0, val), -6))
                     c2 := ::ior(16r80, ::iand(16r3f, val))
+
                     #
                     # the codepoint is then the concatenation of the first byte
                     # with the second byte. We use char() to convert each
                     # integer byte value into the corresponding character
                     #
                     valo := ::char(c1) || ::char(c2)
+
                 #
                 # we check for the three byte case
                 #
@@ -1777,12 +1923,14 @@ class UTF8 : ClassClass(
                     c1 := ::ior(16re0, ::ishift(::iand(16rf000, val), -12))
                     c2 := ::ior(16r80, ::ishift(::iand(16rfc0, val), -6))
                     c3 := ::ior(16r80, ::iand(16r3f, val))
+
                     #
                     # the codepoint is then the concatenation of the first,
                     # second and third bytes. We use char() to convert each
                     # integer byte value into the corresponding character
                     #
                     valo := ::char(c1) || ::char(c2) || ::char(c3)
+
                 #
                 # we check for the four byte case
                 #
@@ -1865,12 +2013,14 @@ class UTF8 : ClassClass(
                     c2 := ::ior(16r80, ::ishift(::iand(16r3f000, val), -12))
                     c3 := ::ior(16r80, ::ishift(::iand(16rfc0, val), -6))
                     c4 := ::ior(16r80, ::iand(16r3f, val))
+
                     #
                     # the codepoint is then the concatenation of the first,
                     # second, third and fourth bytes. We use char() to convert each
                     # integer byte value into the corresponding character
                     #
                     valo := ::char(c1) || ::char(c2) || ::char(c3) || ::char(c4)
+
                 #
                 # otherwise the hexadecimal number supplied is too large and so we
                 # fail
@@ -1898,13 +2048,15 @@ class UTF8 : ClassClass(
     #: fail. If num is not a valid integer number, the method will fail.
     #:
     #:@param num        integer value representing a UTF-8 codepoint
-    #:@return           UTF-8 string object represented by the hexadecimal number
-    #:@fail             if integer is not a valid integer number, if the
+    #:@returns          UTF-8 string object represented by the hexadecimal number
+    #:@fails            if integer is not a valid integer number, if the
     #:@                 integer number is > 16r10FFFF, if the value supplied
     #:@                 cannot be converted to a unicon/icon integer
     #:
     method DecimalTo(num)
-        /num & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing Unicon integer value or Unicon string value")
+        /num & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         #
         # Since we have a method that will convert a hexadecimal code string to
         # the relevant UTF-8 string object. All we need do, is to convert the
@@ -1943,6 +2095,7 @@ class UTF8 : ClassClass(
             DebugPrint("&subject[k]:", image(&subject[k]), "\n",
                        "__UTF8SizeTable[&subject[k]]:", __UTF8SizeTable[&subject[k]], "\n",
                        "k:", k)
+
             k +:= __UTF8SizeTable[&subject[k]]
             j +:= 1
             DebugPrint("&pos:", &pos, "\n",
@@ -2004,9 +2157,9 @@ class UTF8 : ClassClass(
     #:
     #:@param val1           a UTF-8 string or convertible to a UTF-8 string
     #:@param val2           a UTF-8 string or convertible to a UTF-8 string
-    #:@return               val2 if it is equivalent to val1 as UTF-8 strings
-    #:@abort                if either string cannot be converted to an UTF-8 string
-    #:@fail                 if val2 is not equivalent to val1 as UTF-8 strings
+    #:@returns              val2 if it is equivalent to val1 as UTF-8 strings
+    #:@aborts               if either string cannot be converted to an UTF-8 string
+    #:@fails                if val2 is not equivalent to val1 as UTF-8 strings
     #:
     method Equiv(val1, val2)
         local   local_val1,             #LV: temporary to hold the coerced value.
@@ -2058,9 +2211,9 @@ class UTF8 : ClassClass(
     #:
     #:@param val1           a UTF-8 string or convertible to a UTF-8 string
     #:@param val2           a UTF-8 string or convertible to a UTF-8 string
-    #:@return               val2 if it is equivalent to val1 as UTF-8 strings
-    #:@abort                if either string cannot be converted to an UTF-8 string
-    #:@fail                 if val2 is not equivalent to val1 as UTF-8 strings
+    #:@returns              val2 if it is equivalent to val1 as UTF-8 strings
+    #:@aborts               if either string cannot be converted to an UTF-8 string
+    #:@fails                if val2 is not equivalent to val1 as UTF-8 strings
     #:
     method Nequiv(val1, val2)
         return (not Equiv(val1, val2)) & val2
@@ -2090,18 +2243,24 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
+        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str1 := __Coerce(str1)
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str2 := __Coerce(str2)
+
         #
         # We now compare the UFT-8 string data of both supplied values and see
         # if they are lexically equal using the string operator ==.
@@ -2141,18 +2300,24 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
+        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str1 := __Coerce(str1)
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str2 := __Coerce(str2)
+
         #
         # We now compare the UFT-8 string data of both supplied values and see
         # if they are lexically equal using the string operator >>=.
@@ -2192,18 +2357,24 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
+        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str1 := __Coerce(str1)
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str2 := __Coerce(str2)
+
         #
         # We now compare the UFT-8 string data of both supplied values and see
         # if they are lexically equal using the string operator >>.
@@ -2243,18 +2414,24 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
+        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str1 := __Coerce(str1)
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str2 := __Coerce(str2)
+
         #
         # We now compare the UFT-8 string data of both supplied values and see
         # if they are lexically equal using the string operator <<=.
@@ -2294,18 +2471,24 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
+        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str1 := __Coerce(str1)
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str2 := __Coerce(str2)
+
         #
         # We now compare the UFT-8 string data of both supplied values and see
         # if they are lexically equal using the string operator <<.
@@ -2345,18 +2528,24 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
+        /str2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str1 := __Coerce(str1)
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
         #
         local_str2 := __Coerce(str2)
+
         #
         # We now compare the UFT-8 string data of both supplied values and see
         # if they are lexically equal using the string operator ~==.
@@ -2380,8 +2569,8 @@ class UTF8 : ClassClass(
     #:
     #:@param ustr1          this will be the start of the new UTF-8 string
     #:@param ustr2          this will be the end of the new UTF-8 string
-    #:@return               the concatenation of both strings
-    #:@abort                if either string cannot be coerced into a UTF-8
+    #:@returns              the concatenation of both strings
+    #:@aborts               if either string cannot be coerced into a UTF-8
     #:@                     string
     #:
     method Concatenate(ustr1, ustr2)
@@ -2409,8 +2598,12 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /ustr1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /ustr2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(103))
+
+        /ustr2 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(103))
+
         #
         # we coerce the supplied ustr1 first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
@@ -2418,6 +2611,7 @@ class UTF8 : ClassClass(
         DebugPrint("ustr1:", ::image(ustr1))
         local_ustr1 := __Coerce(ustr1)
         DebugPrint("local_ustr1:", ::image(local_ustr1))
+
         #
         # we coerce the supplied ustr2 second. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
@@ -2434,7 +2628,9 @@ class UTF8 : ClassClass(
     #: Complement(val)
     #:
     method Complement(val)
-        /val & AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(104))
+
         return UTF8::UTF8Set.Complement(val)
     end
 
@@ -2442,8 +2638,12 @@ class UTF8 : ClassClass(
     #: Difference(val1, val2)
     #:
     method Difference(val1, val2)
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(120))
+
+        /val2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(120))
+
         return UTF8::UTF8Set.Difference(val1, val2)
     end
 
@@ -2451,8 +2651,12 @@ class UTF8 : ClassClass(
     #: Intersect(val1, val2)
     #:
     method Intersect(val1, val2)
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(120))
+
+        /val2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(120))
+
         return UTF8::UTF8Set.Intersect(val1, val2)
     end
 
@@ -2460,8 +2664,12 @@ class UTF8 : ClassClass(
     #: Union(val1, val2)
     #:
     method Union(val1, val2)
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(120))
+
+        /val2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(120))
+
         return UTF8::UTF8Set.Union(val1, val2)
     end
 
@@ -2482,7 +2690,7 @@ class UTF8 : ClassClass(
     #:
     #:@param str            a value that we will coerce to a UTF-8 object, if it
     #:@                     cannot so be coerced, runtime abort with a 103 error
-    #:@suspend              each UTF-8 codepoint or the UTF-8 Invalid Codepoint
+    #:@suspends             each UTF-8 codepoint or the UTF-8 Invalid Codepoint
     #:@                     codepoint if it cannot resolve the byte string as a
     #:@                     valid UTF-8 codepoint
     #:@fails                when there are no more to be had
@@ -2502,7 +2710,8 @@ class UTF8 : ClassClass(
                                         #:   that variable value.
                 tmp_val                 #LV: temporary value holder
 
-        /str & AbortMessage(116, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(116, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(103))
         DebugPrint("type of str: ", ::type(str), " value of str: ", ::image(str))
         #
         # we coerce the supplied valid first. If cannot be coerced
@@ -2578,14 +2787,16 @@ class UTF8 : ClassClass(
     #:
     #:@param str        any value, though usually a unicon string or a UTF-8
     #:@                 object
-    #:@return           a count of the UTF-8 codepoints found in the source object
-    #:@abort            if a value cannot be coerced to a UTF-8 object (103 - not a string)
+    #:@returns          a count of the UTF-8 codepoints found in the source object
+    #:@aborts           if a value cannot be coerced to a UTF-8 object (103 - not a string)
     #
     method Size(str)
         local   cnt                     #LV: temporary to count the number of
                                         #:   codepoints in the parameter
 
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                                         __AuxMessage(103))
+
         #
         # in the case of raw strings, we will run through and treat it as a
         # potential UTF-8 sequence of code points
@@ -2631,7 +2842,8 @@ class UTF8 : ClassClass(
                                         #:   that will be chosen from within the
                                         #:   coerced UTF-8 string data.
 
-        /str & AbortMessage(113, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(113, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(103))
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
@@ -2666,9 +2878,9 @@ class UTF8 : ClassClass(
     #:@                     codepoints)
     #:@param j              the ending position of the substring (measured in
     #:@                     codepoints)
-    #:@fail                 if either of the positions are outside of the actual
+    #:@fails                if either of the positions are outside of the actual
     #:@                     size of the UTF-8 value (measured in codepoints)
-    #:@abort                if the supplied value cannot be converted to an UTF-8
+    #:@aborts               if the supplied value cannot be converted to an UTF-8
     #:@                     value
     #:
     method Subsection(ustr, i, j)
@@ -2680,9 +2892,21 @@ class UTF8 : ClassClass(
         # Then we use the internal method to select the i'th to j'th codepoints
         # as a new UTF-8 object
         #
-        /ustr & AbortMessage(110, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /j & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /ustr & AbortMessage(110, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(110))
+
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          __AuxMessage(101))
+
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
+        /j & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          __AuxMessage(101))
+
+        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 4), ::image(j))
+
         tmpstr := __Coerce(ustr)
         DebugPrint("tmpstr:", ::image(tmpstr), " i:", i, " j:", j)
         return __GetAt(tmpstr, i, j)
@@ -2696,9 +2920,9 @@ class UTF8 : ClassClass(
     #:@param ustr           a value that can be coerced into a UTF-8 value
     #:@param i              the starting position of the substring (measured by
     #:@                     codepoints)
-    #:@fail                 if either of the positions are outside of the actual
+    #:@fails                if either of the positions are outside of the actual
     #:@                     size of the UTF-8 value (measured in codepoints)
-    #:@abort                if the supplied value cannot be converted to an UTF-8
+    #:@aborts               if the supplied value cannot be converted to an UTF-8
     #:@                     value
     #:
     method Subscript(str, i)
@@ -2708,8 +2932,13 @@ class UTF8 : ClassClass(
         # method call.
         #
         /str & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 Object/value")
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        (not ::numeric(i)) & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(i))
+
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          __AuxMessage(101))
+
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
         return Subsection(str, i, i + 1)
     end
 
@@ -2721,9 +2950,9 @@ class UTF8 : ClassClass(
     #:
     #:@param str            a value that can be coerced into a UTF-8 string for
     #:@                     matching at the current scanning position
-    #:@return               the UTF-8 coerced value if it matches
+    #:@returns              the UTF-8 coerced value if it matches
     #:@fails                if it doesn't match
-    #:@abort                if the value cannot be converted to a UTF-8 string
+    #:@aborts               if the value cannot be converted to a UTF-8 string
     #:
     method TabMatch(str)
         local   local_str               #LV: temporary to hold the coerced value.
@@ -2736,7 +2965,9 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                                         __AuxMessage(103))
+
         #
         # we coerce the supplied valid first. If cannot be coerced
         # then a runtime abort is performed with a value of 103 - "not a string"
@@ -2797,7 +3028,7 @@ class UTF8 : ClassClass(
     #:@param j          this specifies then end position of the scan, if not specified
     #:@                 this will be specified to the position after the last UTF-8
     #:@                 codepoint.
-    #:@suspend          each position in the string just before any character found
+    #:@suspends         each position in the string just before any character found
     #:@                 in the specified UTF-8 cset
     #:
     method Any(uset, ustr, i, j)
@@ -2829,7 +3060,9 @@ class UTF8 : ClassClass(
 
                 sz                      #LV:
 
-        /uset & AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value")
+        /uset & AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(104))
+
         #
         # test that uset is not null, if it is procedure fails
         #
@@ -2868,9 +3101,11 @@ class UTF8 : ClassClass(
         # convert i and j to integers if necessary and abort if either cannot be
         # converted to an integer
         #
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
 
-        (j := ::integer(j)) | AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for j: ", ::image(j))
+        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 4), ::image(j))
 
         #
         # here we do the calculations to convert i and j from negative values to
@@ -2997,9 +3232,11 @@ class UTF8 : ClassClass(
         # convert i and j to integers if necessary and abort if either cannot be
         # converted to an integer
         #
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
 
-        (j := ::integer(j)) | AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for j: ", ::image(j))
+        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 4), ::image(j))
 
         #
         # here we do the calculations to convert i and j from negative values to
@@ -3246,7 +3483,9 @@ class UTF8 : ClassClass(
 
                 sz                      #LV:
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # set the default field size to 1 if not supplied
         #
@@ -3276,7 +3515,8 @@ class UTF8 : ClassClass(
         # we need the i value to be convertible to an integer and the value to
         # be greater or equal to 0
         #
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
 
         (i >= 0) | AbortMessage(205, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", i)
         #
@@ -3322,7 +3562,12 @@ class UTF8 : ClassClass(
     end
 
     method Char(i)
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          __AuxMessage(101))
+
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
         return DecimalTo(i)
     end
 
@@ -3376,7 +3621,9 @@ class UTF8 : ClassClass(
 
                 interval := 8           #LV:
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         (*i = 0) & i := [9]
         isorted := ::sort(i)
         if not ::equiv(i, isorted) then {
@@ -3396,7 +3643,8 @@ class UTF8 : ClassClass(
         local_ustr := __Coerce(ustr)
         DebugPrint("coerced parameter ustr.String():", ::ximage(local_ustr.String()))
         every tst := ::type(!i) do {
-            (tst == "integer") | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+            (tst == "integer") | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                              __AuxMessage(101, 3), ::image(i))
         }
         DebugPrint("all elements of i are integers")
         every (tst := !i) do {
@@ -3478,7 +3726,9 @@ class UTF8 : ClassClass(
 
                 interval := 8           #LV:
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         (*i = 0) & i := [9]
         isorted := ::sort(i)
         if not ::equiv(i, isorted) then {
@@ -3498,7 +3748,8 @@ class UTF8 : ClassClass(
         local_ustr := __Coerce(ustr)
         DebugPrint("coerced parameter ustr.String():", ::ximage(local_ustr.String()))
         every tst := ::type(!i) do {
-            (tst == "integer") | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+            (tst == "integer") | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                              __AuxMessage(101, 3), ::image(i))
         }
         DebugPrint("all elements of i are integers")
         every (tst := !i) do {
@@ -3598,7 +3849,9 @@ class UTF8 : ClassClass(
 
                 sz                      #LV:
 
-        /ustr1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(103))
+
         #
         #######################################################################
         # common set-up code for string analysis code
@@ -3629,8 +3882,10 @@ class UTF8 : ClassClass(
         # convert i and j to integers if necessary and abort if either cannot be
         # converted to an integer
         #
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
-        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for j: ", ::image(j))
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 4), ::image(j))
         #
         # here we do the calculations to convert i and j from negative values to
         # the proper positions values. negative values measure from the RHS of the
@@ -3712,16 +3967,24 @@ class UTF8 : ClassClass(
 
                 s                       #LV:
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         /i := 1
-        (::type(i) == "integer") | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::type(i))
-        (i > 0) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", i)
+        (::type(i) == "integer") | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                                __AuxMessage(101, 5), ::type(i))
+
+        (i > 0) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                               __AuxMessage(101, 6), i)
+
         /pstr := " "
         local_ustr := __Coerce(ustr)
         local_pstr := __Coerce(pstr)
+
         DebugPrint("coerced parameter ustr.String():", ::ximage(local_ustr.String()), "\n",
                    "coerced parameter pstr.String():", ::ximage(local_pstr.String()), "\n",
                    "i:", i)
+
         j := local_ustr.Size()
         DebugPrint("j:", j)
         if i > j then {
@@ -3771,7 +4034,8 @@ class UTF8 : ClassClass(
 
                 sz                      #LV:
 
-        /uset & AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value")
+        /uset & AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(104))
         #
         #######################################################################
         # common set-up code for string analysis code
@@ -3802,8 +4066,12 @@ class UTF8 : ClassClass(
         # convert i and j to integers if necessary and abort if either cannot be
         # converted to an integer
         #
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
-        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for j: ", ::image(j))
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
+        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 4), ::image(j))
+
         #
         # here we do the calculations to convert i and j from negative values to
         # the proper positions values. negative values measure from the RHS of the
@@ -3891,18 +4159,27 @@ class UTF8 : ClassClass(
         initial {
             maptab := ::table()
         }
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         local_ustr := __Coerce(ustr)
         /ustr1 := ::string(&ucase)
         local_ustr1 := __Coerce(ustr1)
+
         DebugPrint("coerced parameter ustr1.String():", ::ximage(local_ustr1.String()))
+
         /ustr2 := ::string(&lcase)
         local_ustr2 := __Coerce(ustr2)
         (*ustr1 ~== *ustr2) & AbortMessage(208, keyword("&file", , 1), keyword("&line", , 1))
+
         DebugPrint("coerced parameter ustr2.String():", ::ximage(local_ustr2.String()))
+
         ((i := local_ustr1.Size()) = local_ustr2.Size()) |
-                AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending values for mapping strings: (",
-                                                local_ustr1.String(), ") and (", local_ustr2.String(), ")")
+                AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103, 7), "(",
+                             local_ustr1.String(), ") and (", local_ustr2.String(), ")")
+
         if /istr1 | /istr2 | istr1.String() ~== local_ustr1.String() | istr2.String() ~== local_ustr2.String() then {
             # recompute mapping table
             every k := 1 to i do {
@@ -3912,11 +4189,15 @@ class UTF8 : ClassClass(
             istr1 := local_ustr1
             istr2 := local_ustr2
         }
+
         DebugPrint("ximage(maptab):", ::ximage(maptab))
+
         every ch := ForEach(local_ustr).String() do {
             str ||:= (\maptab[ch] | ch)
         }
+
         DebugPrint("str:", ::ximage(str))
+
         return if local_ustr.String() == str then {
             local_ustr
         } else {
@@ -3953,7 +4234,9 @@ class UTF8 : ClassClass(
 
                 sz                      #LV:
 
-        /ustr1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr1 & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(103))
+
         #
         #######################################################################
         # common set-up code for string analysis code
@@ -3984,8 +4267,12 @@ class UTF8 : ClassClass(
         # convert i and j to integers if necessary and abort if either cannot be
         # converted to an integer
         #
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
-        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for j: ", ::image(j))
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
+        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 4), ::image(j))
+
         #
         # here we do the calculations to convert i and j from negative values to
         # the proper positions values. negative values measure from the RHS of the
@@ -4038,19 +4325,25 @@ class UTF8 : ClassClass(
         curpos := &pos
         curcpos := AmpPos()
         /i := 1
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
         DebugPrint("curpos(&pos):", curpos, "\n",
                   "curcpos:", curcpos,
                   "i:", i,
                   "sz:", sz)
+
         newcpos := curcpos + i
         (newcpos < 0) & fail
         (newcpos > sz + 1) & fail
         newpos := __ActualPos(ustr, newcpos)
+
         DebugPrint("curpos:", curpos, " curcpos:", curcpos)
         DebugPrint("newpos:", newpos, " newcpos:", newcpos)
         DebugPrint("&pos:", &pos, "\n",
                    "newpos:", newpos)
+
         suspend UTF8::UTF8.New(&subject[.&pos:&pos <- newpos])
     end
 
@@ -4073,10 +4366,14 @@ class UTF8 : ClassClass(
 
                 m                       #LV:
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         local_ustr := __Coerce(ustr)
-        (local_ustr.Size() = 1) | AbortMessage(205, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for Size: ",
-                                                    local_ustr.Size(), " should be of size 1")
+        (local_ustr.Size() = 1) |
+            AbortMessage(205, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for Size: ",
+                         local_ustr.Size(), " should be of size 1")
+
         str := ToUnicode32(local_ustr.String())
         str ? {
             ="U+" &
@@ -4087,8 +4384,11 @@ class UTF8 : ClassClass(
     end
 
     method Pos(i)
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        integer(i) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          __AuxMessage(101))
+
+        integer(i) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                  __AuxMessage(101, 3), ::image(i))
 
         return pos(__ActualPos(__Coerce(&subject), i))
     end
@@ -4108,18 +4408,27 @@ class UTF8 : ClassClass(
 
                 str                     #LV:
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
         (i >= 0) | AbortMessage(205, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", i)
+
         local_ustr := __Coerce(ustr)
         data := local_ustr.String()
+
         DebugPrint("data:", ::ximage(data), "\n",
                    "i:", i)
+
         str := data
         every 2 to i do {
             str ||:= data
         }
+
         DebugPrint("str:", ::ximage(str))
+
         return UTF8::UTF8.New(str)
     end
 
@@ -4139,7 +4448,9 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         local_ustr := __Coerce(ustr)
         every nstr := ForEach(local_ustr).String() || nstr
         return UTF8::UTF8.New(nstr)
@@ -4170,10 +4481,16 @@ class UTF8 : ClassClass(
 
                 lstr                    #LV:
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         /i := 1
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
         (i >= 0) | AbortMessage(205, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", i)
+
         /pstr := " "
         local_ustr := __Coerce(ustr)
         local_pstr := __Coerce(pstr)
@@ -4206,18 +4523,23 @@ class UTF8 : ClassClass(
         curpos := &pos
         curcpos := AmpPos()
         /i := 0
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
         DebugPrint("curpos(&pos):", curpos, "\n",
                   "curcpos:", curcpos,
                   "i:", i,
                   "sz:", sz)
+
         newcpos :=  i
         newpos := __ActualPos(ustr, newcpos)
         (newcpos > sz + 1) & fail
+
         DebugPrint("curpos:", curpos, " curcpos:", curcpos)
         DebugPrint("newpos:", newpos, " newcpos:", newcpos)
         DebugPrint("&pos:", &pos, "\n",
                    "newpos:", newpos)
+
         suspend UTF8::UTF8.New(&subject[.&pos:&pos <- newpos])
     end
 
@@ -4241,7 +4563,7 @@ class UTF8 : ClassClass(
     #:@                 the allutf8blanks flag.
     #:@param i          this specifies which end/ends to trim, default is -1 (RHS)
     #:@                 1 (LHS), 0 (both ends)
-    #:@return           the trimmed string
+    #:@returns          the trimmed string
     #:
     method Trim(ustr, uset, i, allutf8blanks)
         local   j,                      #LV: temporary to hold position after the
@@ -4272,28 +4594,34 @@ class UTF8 : ClassClass(
                                         #:   the first codepoint, used to test if
                                         #:   leftmost codepoints are in uset
 
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(103))
+
         #
         # if uset is &null and depending on whether we want all UTF-8 space
         # codepoints or just the ASCII space, we set the uset to the appropriate
         # default space set.
         #
         /uset := ((/allutf8blanks & UTF8Set.Space()) | UTF8Set.UTF8Space())
+
         #
         # as a matter of course, we will coerce the cset of characters, this will
         # have no effect if the default has been set
         #
         local_uset := UTF8Set.__Coerce(uset)
+
         #
         # we coerce the value given and if it is not convertible we will do a
         # runtime abort with a 103 - not a string error
         #
         local_ustr := __Coerce(ustr)
+
         #
         # Only if debugging has been turned on will this print the source string,
         # otherwise it is a null operation
         #
         DebugPrint("coerced parameter ustr.String():", local_ustr.String())
+
         #
         # if no value has been supplied for which ends to trim, we will use the
         # default of -1, strip from RHS of string
@@ -4303,13 +4631,16 @@ class UTF8 : ClassClass(
         # if the value given for which end to start is not an integer, we need
         # to runtime abort with an error of 101 - not an integer
         #
-        (::type(i) == "integer") | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
+        (::type(i) == "integer") | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                                __AuxMessage(101, 3), ::image(i))
+
         #
         # we can now set the temporaries to the position after the last codepoint
         # and the position before the first codepoint
         #
         j := local_ustr.Size() + 1
         k := 1
+
         #
         # if debugging is On, we would like to see which ends to trim and the
         # relevant starting points for those trims
@@ -4317,6 +4648,7 @@ class UTF8 : ClassClass(
         DebugPrint("i:", i, "\n",
                    "j:", j, "\n",
                    "k:", k)
+
         #
         # there are two situations in which we want to test each codepoint from
         # the RHS, when we want to trim only from the RHS or when we want to trim
@@ -4332,6 +4664,7 @@ class UTF8 : ClassClass(
             j -:= 1
             DebugPrint("  j:", j)
         }
+
         #
         # in a similar manner, there are two situations in which we want to test
         # each codepoint from the LHS, when we want to trim only from the LHS or
@@ -4348,12 +4681,14 @@ class UTF8 : ClassClass(
             k +:= 1
             DebugPrint("  k:", k)
         }
+
         #
         # if debugging is On, we want to see what the final start and end points
         # are, otherwise this is a null operation
         #
         DebugPrint("j:", j, "\n",
                    "k:", k)
+
         #
         # using the final start and end points, we will create a new UTF-8 string
         # that has been trimmed of the selected set of codepoints
@@ -4381,7 +4716,7 @@ class UTF8 : ClassClass(
     #:@param j          this specifies then end position of the scan, if not specified
     #:@                 this will be specified to the position after the last UTF-8
     #:@                 codepoint.
-    #:@suspend          each position in the string just before any character found
+    #:@suspends         each position in the string just before any character found
     #:@                 in the specified UTF-8 cset
     #:
     method Upto(uset, ustr, i, j)
@@ -4407,7 +4742,9 @@ class UTF8 : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /uset & AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /uset & AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(104))
+
         #
         #######################################################################
         # common set-up code for string analysis code
@@ -4416,30 +4753,39 @@ class UTF8 : ClassClass(
         # if the string to scan is null or 1 (the start of the string to scan)
         #
         /i := ((/ustr & &pos) | 1)
+
         #
         # we will use the current value found in &subject if no string is specified
         # for scanning
         #
         /ustr := &subject
+
         #
         # we need to coerce the given string value to a UTF-8 string if it needs this
         #
         local_ustr := __Coerce(ustr)
+
         #
         # we need the size of the UTF-8 string for various calculations, so get it now
         #
         sz := local_ustr.Size()
+
         #
         # if j is not supplied, we set it to a position just after the last codepoint
         #
         /j := sz + 1
+
         #
         #
         # convert i and j to integers if necessary and abort if either cannot be
         # converted to an integer
         #
-        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for i: ", ::image(i))
-        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value for j: ", ::image(j))
+        (i := ::integer(i)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 3), ::image(i))
+
+        (j := ::integer(j)) | AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                                           __AuxMessage(101, 4), ::image(j))
+
         #
         # here we do the calculations to convert i and j from negative values to
         # the proper positions values. negative values measure from the RHS of the
@@ -4447,33 +4793,40 @@ class UTF8 : ClassClass(
         #
         (i <= 0) & i := sz + i + 1
         (j <= 0) & j := sz + j + 1
+
         #
         # there is nothing to do if the values of i and j are equal, so the procedure
         # just needs to fail as we will have no results
         #
         (i ~= j) | fail
+
         #
         # it is allowed that i can be greater than j, in this case we simply swap the
         # values before starting the scan of the string
         #
         (i > j) & i :=: j
+
         #
         # the last check we need to make is that j is in fact less than or equal
         # the length of the string + 1. if it is greater than the last possible
         # position for a string, we then need to fail.
         #
         (j <= sz + 1) | fail
+
         #
         # end of common set-up code for string analysis code
         #######################################################################
         #
         # if the supplied cset if null we need to abort with a 104 - cset expected
         #
-        \uset | AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        \uset | AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(104))
+
         #
         # now we can make sure that the uset value is a UFT-8 cset
         #
         local_uset := Cset(uset)
+
         #
         # After all that, we now do the scan checking to see if each codepoint
         # in the string is a match to one in the cset supplied. if it is, we
@@ -4485,6 +4838,7 @@ class UTF8 : ClassClass(
             }
             i +:= 1
         }
+
         #
         # at the completion of the scan, the procedure will fail as per upto()
         # semantics
@@ -4505,10 +4859,12 @@ initially()
         # will be a null operation.
         #
         Execute(ClassObject::ClassClass)
+
         #
         # We will test if the global debugging is turned on or off.
         #
         IsOn()
+
         #
         # This is an example of a class that has an associated class. We need to
         # create the linkage between the two classes. This linkage defines that
@@ -4516,17 +4872,21 @@ initially()
         # will be treated as a member of this class
         #
         SetClass(UTF8::__UTF8Object)
+
         #
         # we now set this class name to be the object itself, so that no more
         # objects of this unicon class are created.
         #
         UTF8::UTF8 := self
+
         #
         # For the UTF-8 system, we need to initialise all the various data structures
         # that will be needed for processing byte strings as UTF-8 sequences.
         #
         __Initialise()
+
         ::runtime_error_message(2000, "cannot coerce to UTF8 object/value")
+
         DebugPrint("Have Finished Initialising the Class UTF8")
     }
 end
@@ -4572,7 +4932,7 @@ class __UTF8Object : ClassObject(
     #: Data() - returns the raw data that is associated with the UTF-8 string, this
     #: raw data is in a byte string.
     #:
-    #:@return           the raw byte data associated with this UTF-8 object as a
+    #:@returns          the raw byte data associated with this UTF-8 object as a
     #:@                 derefernced string value. This is to make sure that the
     #:@                 cannot be used to update the actual variable.
     #:
@@ -4618,7 +4978,9 @@ class __UTF8Object : ClassObject(
     #: Difference(val)
     #:
     method Difference(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8.__AuxMessage(120))
+
         return UTF8::UTF8Set.Difference(self, val)
     end
 
@@ -4626,7 +4988,9 @@ class __UTF8Object : ClassObject(
     #: Intersect(val)
     #:
     method Intersect(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8.__AuxMessage(120))
+
         return UTF8::UTF8Set.Intersect(self, val)
     end
 
@@ -4634,7 +4998,9 @@ class __UTF8Object : ClassObject(
     #: Union(val)
     #:
     method Union(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8/UTf8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8.__AuxMessage(120))
+
         return UTF8::UTF8Set.Union(self, val)
     end
 
@@ -4658,7 +5024,9 @@ class __UTF8Object : ClassObject(
     #:
     #:
     method LexEquals(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8.__AuxMessage(103))
+
         return UTF8::UTF8.LexEquals(self, str)
     end
 
@@ -4666,7 +5034,9 @@ class __UTF8Object : ClassObject(
     #:
     #:
     method LexGTorEq(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(103))
+
         return UTF8::UTF8.LexGTorEq(self, str)
     end
 
@@ -4674,7 +5044,9 @@ class __UTF8Object : ClassObject(
     #:
     #:
     method LexGT(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8.__AuxMessage(103))
+
         return UTF8::UTF8.LexGT(self, str)
     end
 
@@ -4682,7 +5054,9 @@ class __UTF8Object : ClassObject(
     #:
     #:
     method LexLTorEq(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8.__AuxMessage(103))
+
         return UTF8::UTF8.LexLTorEq(self, str)
     end
 
@@ -4690,7 +5064,9 @@ class __UTF8Object : ClassObject(
     #:
     #:
     method LexLT(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8.__AuxMessage(103))
+
         return UTF8::UTF8.LexLT(self, str)
     end
 
@@ -4698,7 +5074,9 @@ class __UTF8Object : ClassObject(
     #:
     #:
     method LexNE(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8.__AuxMessage(103))
+
         return UTF8::UTF8.LexNE(self, str)
     end
 
@@ -4709,8 +5087,8 @@ class __UTF8Object : ClassObject(
     #: when we have UTF-8 multi-byte characters that we have to use the more
     #: general process of getting each UTF-8 codepoint.
     #:
-    #:@suspend          each codepoint in sequence
-    #:@fail             when there no more codepoints to be had
+    #:@suspends         each codepoint in sequence
+    #:@fails            when there no more codepoints to be had
     #:
     method ForEach()
         local   temp,
@@ -4721,6 +5099,7 @@ class __UTF8Object : ClassObject(
         # processes for generating each character
         #
         DebugPrint("__asciionly:", ::image(__asciionly),"\n__data:", ::image(__data))
+
         if \__asciionly then {
             suspend temp2 := UTF8::UTF8.SpecialString(temp := !__data) do {
                 DebugPrint("each ascii element from __data:", image(temp))
@@ -4753,12 +5132,12 @@ class __UTF8Object : ClassObject(
     #: that will be called directly if the * operator is used on
     #: any UTF-8 object.
     #:
-    #:@return           a count of the UTF-8 codepoints found in the source object
+    #:@returns          a count of the UTF-8 codepoints found in the source object
     #
     method Size()
         #
-        # since the size has been determined at creation time, there should be (
-        # in normal use), no way that the data has been changed and so the number
+        # since the size has been determined at creation time, there should be
+        # (in normal use), no way that the data has been changed and so the number
         # of codepoints will remain the same for the entire lifetime of this
         # object. Therefore, we will be able to just return the dereferenced size
         # value instead of trying to calculate the size each time.
@@ -4773,16 +5152,19 @@ class __UTF8Object : ClassObject(
     #:
     #:@param ustr       this value should be something that can be coerced into
     #:@                 a UTF-8 string object
-    #:@return           a new UTF-8 string object whose data is the concatenation
+    #:@returns          a new UTF-8 string object whose data is the concatenation
     #:@                 of the data in the current object and the data in the
     #:@                 supplied object
-    #:@error            if the  supplied object cannot be coerced into a UTF-8
+    #:@aborts           if the  supplied object cannot be coerced into a UTF-8
     #:@                 string object
     #:
     method Concatenate(ustr)
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             UTF8::UTF8.__AuxMessage(103))
+
         DebugPrint("self:", ::image(self))
         DebugPrint("ustr:", ::image(ustr))
+
         return UTF8::UTF8.Concatenate(self, ustr)
     end
 
@@ -4799,15 +5181,20 @@ class __UTF8Object : ClassObject(
     #:@                 negative, the value will be based on the size of the
     #:@                 the UTF-8 string. the same referencing rules as for
     #:@                 unicon/icon strings - RHS start for negative numbers
-    #:@return           a new UTF-8 object representing the codepoints found
+    #:@returns          a new UTF-8 object representing the codepoints found
     #:@                 between i and j positions
     #:@fails            if the values of i and j are outside the UTF-8 string
     #:@                 the method will fail
     #:
     method Subsection(i, j)
         DebugPrint("self:", image(self), " i:", i, " j:", j)
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /j & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          UTF8::UTF8.__AuxMessage(101))
+
+        /j & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          UTF8::UTF8.__AuxMessage(101))
+
         return UTF8::UTF8.Subsection(self, i, j)
     end
 
@@ -4815,7 +5202,9 @@ class __UTF8Object : ClassObject(
     #:
     #:
     method Subscript(i)
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          UTF8::UTF8.__AuxMessage(101))
+
         return UTF8::UTF8.Subscript(self, i)
     end
 
@@ -4832,9 +5221,9 @@ class __UTF8Object : ClassObject(
     #: in the situation where there were found to be invalid UTF-8 codepoints bytes,
     #: otherwise, it will fail.
     #:
-    #:@return           the dereferenced source string if there were any invalid
+    #:@returns          the dereferenced source string if there were any invalid
     #:@                 found.
-    #:@fail             if the UTF-8 string consists of only valid bytes in the
+    #:@fails            if the UTF-8 string consists of only valid bytes in the
     #:@                 correct order in the string
     #:
     method Invalid()
@@ -4858,7 +5247,7 @@ class __UTF8Object : ClassObject(
 #:@param val            the value to be used as data for the UTF-8 string
 #:@param convert        used only when unicon string are to be converted from
 #:@                     a sequence of bytes to the corresponding UTF-8 codepoints
-#:@return               a new UTF-8 codepoint string
+#:@returns              a new UTF-8 codepoint string
 #:
 initially(val, convert)
     local   byte,                       #LV: temporary to hold the next byte
@@ -4878,6 +5267,7 @@ initially(val, convert)
     #
     if ::type(val) == ("string" | "cset") then {
         DebugPrint("(", &level, ") type of val: ", ::type(val), " value of val: ", ::ximage(val))
+
         #
         # if we are to convert the val from a byte string to a UTF-8 string, we
         # do so by translating each byte to the corresponding codepoint.
@@ -4896,11 +5286,13 @@ initially(val, convert)
         #
         __size := UTF8::UTF8.Size(val)
         DebugPrint("(", &level, ") Size of val: ", __size)
+
         #
         # if the val is made up of Valid UTF-8 codepoints then just assign val to
         # the __data field and calculate the size of the UTF-8 string
         #
         DebugPrint("Is Valid: ", image(UTF8::UTF8.Valid(val)) | "fail")
+
         if __data := (UTF8::UTF8.Valid(val)) then {
             #
             # It is ASCII only if the number of bytes is the same as the number of
@@ -4911,6 +5303,7 @@ initially(val, convert)
             __asciionly := ((*val = __size) & 1 )
             DebugPrint("(", &level, ") posttest - Is ASCII only: ", \__asciionly | "null", " __data:", ::image(__data))
             DebugPrint("(", &level, ") __data:", ::image(__data))
+
         #
         # otherwise we have some invalid codepoint and we want these to be
         # transformed into the UTF-8 Invalid Codepoint codepoint. We will also
@@ -4919,10 +5312,13 @@ initially(val, convert)
         } else {
             __source_data := val
             DebugPrint("__source_data:", ::image(__source_data))
+
             __data := ""
             every __data ||:= UTF8::UTF8.ForEach(val).String()
+
             DebugPrint("__data:", ::image(__data))
         }
+
     #
     # otherwise we check to see if it is a standard unicon/icon number value
     # which we will convert directly to a string. There are not expected to be
@@ -4933,6 +5329,7 @@ initially(val, convert)
         __data := ::string(val)
         __size := *__data
         __asciionly := 1
+
     #
     # otherwise, we check to see if it is already a UTF-8 object and simply
     # return that value as we are treating all UTF-8 strings as immutable.
@@ -4947,6 +5344,7 @@ initially(val, convert)
     #
     } else if IsObjectOf(val, "UTF8") then {
         variable("self", , 1) := val
+
     #
     # otherwise, we check to see if it is a UTF-8 cset value and return the
     # corresponding UTF-8 string in like manner to the normal unicon/icon cset
@@ -4964,13 +5362,15 @@ initially(val, convert)
     #
     } else if IsObjectOf(val, "UTF8Set") then {
         variable("self", , 1) := val.UTF8Value()
+
     #
     # finally, we have some value that cannot be coerce into a UTF-8 string, so
     # we do what the normal unicon/icon runtime does and runtime abort with a
     # 103 - not a string error
     #
     } else {
-        AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value:", ::image(val))
+        AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                     "\noffending value:", ::image(val))
     }
 
     DebugPrint("This object is ", ::image(self))
@@ -5026,12 +5426,57 @@ class UTF8Set : ClassClass(
 )
 
     method __Coerce(val)
-        /val & AbortMessage(2001, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(2001, keyword("&file", , 1), keyword("&line", , 1),
+        "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+
         if IsObjectOf(val, "UTF8Set") then {
             return val
         } else {
             return UTF8::UTF8Set.New(val)
         }
+    end
+
+    #MD:
+    #: __AuxMessage(errorno, messageno)
+    #:
+    #:
+    method __AuxMessage(errorno, messageno)
+        static  ErrorMessages           #SV: table holding error messages for error
+                                        #:   numbers used in UFT8/UTF8Set aborts
+
+        initial {
+            ErrorMessages := ::table()
+
+            ErrorMessages[103 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value."
+            ErrorMessages[103 || "-" || 2] := "\noffending value: "
+            ErrorMessages[103 || "-" || 3] := "\noffending value: &null_
+                                               \nMissing Unicon string value"
+            ErrorMessages[103 || "-" || 4] := "\noffending value: &null_
+                                               \nMissing Unicon integer value or Unicon string value"
+            ErrorMessages[104 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+            ErrorMessages[104 || "-" || 2] := "\noffending value: &null"
+            ErrorMessages[110 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value."
+            ErrorMessages[112 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+            ErrorMessages[113 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value."
+            ErrorMessages[114 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+            ErrorMessages[116 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+            ErrorMessages[120 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+            ErrorMessages[122 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+            ErrorMessages[122 || "-" || 2] := "\noffending value: "
+            ErrorMessages[2001 || "-" || 1] := "\noffending value: &null_
+                                                \nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value."
+        }
+        /messageno := 1
+        return \ErrorMessages[errorno || "-" || messageno] | \(self$ClassClass.__AuxMessage(errorno, messageno))
     end
 
     method Complement(uset)
@@ -5045,7 +5490,9 @@ class UTF8Set : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /uset & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing first UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /uset & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(120))
+
         local_uset := __Coerce(uset)
         return local_uset.Complement()
     end
@@ -5061,8 +5508,12 @@ class UTF8Set : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /uset1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing first UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
-        /uset2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing second UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /uset1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(120))
+
+        /uset2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(120))
+
         local_uset1 := __Coerce(uset1)
         return local_uset1.Difference(uset2)
     end
@@ -5077,8 +5528,12 @@ class UTF8Set : ClassClass(
                                         #:   variable reference in the calling
                                         #:   environment, we will not affect
                                         #:   that variable value.
-        /uset1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing first UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
-        /uset2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing second UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /uset1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(120))
+
+        /uset2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(120))
+
         local_uset1 := __Coerce(uset1)
         return local_uset1.Intersect(uset2)
     end
@@ -5094,8 +5549,12 @@ class UTF8Set : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /uset1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing first UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
-        /uset2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing second UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /uset1 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(120))
+
+        /uset2 & AbortMessage(120, keyword("&file", , 1), keyword("&line", , 1),
+                              __AuxMessage(120))
+
         DebugPrint("image(uset1):", image(uset1), "\nimage(uset2):", image(uset2))
         local_uset1 := __Coerce(uset1)
         DebugPrint("image(local_uset1):", image(local_uset1))
@@ -5113,7 +5572,9 @@ class UTF8Set : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /val & AbortMessage(116, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(116, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(116))
+
         local_val := __Coerce(val)
         suspend local_val.ForEach()
     end
@@ -5128,7 +5589,10 @@ class UTF8Set : ClassClass(
                                         #:   variable reference in the calling
                                         #:   environment, we will not affect
                                         #:   that variable value.
-        /val & AbortMessage(112, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+
+        /val & AbortMessage(112, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(112))
+
         local_val := __Coerce(val)
         return local_val.Size()
     end
@@ -5148,8 +5612,12 @@ class UTF8Set : ClassClass(
     method Subscript(val, i)
         local   local_val               #LV:
 
-        /val & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(114))
+
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          __AuxMessage(101))
+
         local_val := __Coerce(val)
         return local_val.Subscript(i)
     end
@@ -5165,13 +5633,19 @@ class UTF8Set : ClassClass(
                                         #:   environment, we will not affect
                                         #:   that variable value.
 
-        /uset & AbortMessage(122, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /uset & AbortMessage(122, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(122))
+
         not (::type(uset) == "cset" | IsObjectOf(uset, "UTF8Set")) &
-            AbortMessage(122, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(uset))
+            AbortMessage(122, keyword("&file", , 1), keyword("&line", , 1),
+                         __AuxMessage(122, 2), image(uset))
+
         local_uset := __Coerce(uset)
+
         DebugPrint("Size of val:", *val, "\n",
                    "image(val):", ::image(val), "\n",
                    "coerced parameter uset:", ::image(uset))
+
         (*val = 0) & return uset
         return (local_uset.Member ! val) & uset
     end
@@ -5180,7 +5654,7 @@ class UTF8Set : ClassClass(
     #: Space() - this returns the UTF-8 set that represents the ASCII space
     #: character
     #:
-    #:@return           UTF8Set object representing the ASCII space character
+    #:@returns          UTF8Set object representing the ASCII space character
     #:
     method Space()
         return .__ascii_blank
@@ -5190,7 +5664,7 @@ class UTF8Set : ClassClass(
     #: UTF8Spaces() this returns the UTF-8 set that represents all of the UTF-8
     #: space codepoints. See class header for details.
     #:
-    #:@return           UTF8Set object representing all of the UTF-8 space codepoints
+    #:@returns          UTF8Set object representing all of the UTF-8 space codepoints
     #:
     method UTF8Spaces()
         return .__uft8_blanks
@@ -5199,7 +5673,7 @@ class UTF8Set : ClassClass(
     #MD:
     #: Ascii() - return the UTF-8 cset that contains only the 128 ASCII codepoints
     #:
-    #:@return           UTF8Set object representing the 128 ASCII codepoints
+    #:@returns          UTF8Set object representing the 128 ASCII codepoints
     method Ascii()
         return .__ascii_128
     end
@@ -5207,7 +5681,7 @@ class UTF8Set : ClassClass(
     #MD:
     #: Rparens() - return the UTF-8 cset that contains only the ')' codepoint
     #:
-    #:@return           UTF8Set object representing the ')' codepoint
+    #:@returns          UTF8Set object representing the ')' codepoint
     method Rparens()
         return .__ascii_rparens
     end
@@ -5215,7 +5689,7 @@ class UTF8Set : ClassClass(
     #MD:
     #: Lparens() - return the UTF-8 cset that contains only the '(' codepoint
     #:
-    #:@return           UTF8Set object representing the '(' codepoint
+    #:@returns          UTF8Set object representing the '(' codepoint
     method Lparens()
         return .__ascii_lparens
     end
@@ -5223,7 +5697,7 @@ class UTF8Set : ClassClass(
     #MD:
     #: All() - return the UTF-8 cset that contains all codepoints
     #:
-    #:@return           UTF8Set object representing all codepoints
+    #:@returns          UTF8Set object representing all codepoints
     method All()
         return .__all_codepoints
     end
@@ -5231,7 +5705,7 @@ class UTF8Set : ClassClass(
     #MD:
     #: MaxSize() - returns the maximum number of codepoints in the UTF-8 space
     #:
-    #:@return           a number
+    #:@returns          a number
     method MaxSize()
         return .__max_size_of_set
     end
@@ -5273,19 +5747,32 @@ initially()
         UTF8::UTF8Set := self
         __defined_sets := table()
         __defined_sets[::string(&ascii)] := __ascii_blank := New(::string(&ascii))
+
         DebugPrint("__ascii_128 is ", ::image(__ascii_blank))
+
         __defined_sets[" "] := __ascii_blank := New(" ")
+
         DebugPrint("__ascii_blank is ", ::image(__ascii_blank))
+
         __defined_sets["                　"] := __uft8_blanks := New("                　")   # there are 17 UTF-8 blank codepoints
+
         DebugPrint("__uft8_blanks is ", ::image(__uft8_blanks))
+
         __defined_sets["("] := __ascii_lparens := New("(")
+
         DebugPrint("__ascii_lparens is ", ::image(__ascii_lparens))
+
         __defined_sets[")"] := __ascii_rparens := New(")")
+
         DebugPrint("__ascii_rparens is ", ::image(__ascii_rparens))
+
         __all_codepoints := New()
+
         DebugPrint("__all_codepoints is ", ::image(__all_codepoints))
+
         __max_size_of_set := 1112064
         ::runtime_error_message(2001, "cannot coerce to UTF8Set object/value")
+
         DebugPrint("Have Finished Initialising the Class UTF8Set")
     }
 end
@@ -5411,7 +5898,9 @@ class __UTF8SetObject : ClassObject(
     #:
     #:
     method LexEquals(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(103))
+
         return UTF8::UTF8.LexEquals(self.UTF8Value(), str)
     end
 
@@ -5419,7 +5908,9 @@ class __UTF8SetObject : ClassObject(
     #:
     #:
     method LexGTorEq(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(103))
+
         return UTF8::UTF8.LexGTorEq(self.UTF8Value(), str)
     end
 
@@ -5427,7 +5918,9 @@ class __UTF8SetObject : ClassObject(
     #:
     #:
     method LexGT(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(103))
+
         return UTF8::UTF8.LexGT(self.UTF8Value(), str)
     end
 
@@ -5435,7 +5928,9 @@ class __UTF8SetObject : ClassObject(
     #:
     #:
     method LexLTorEq(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(103))
+
         return UTF8::UTF8.LexLTorEq(self.UTF8Value(), str)
     end
 
@@ -5443,7 +5938,9 @@ class __UTF8SetObject : ClassObject(
     #:
     #:
     method LexLT(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(103))
+
         return UTF8::UTF8.LexLT(self.UTF8Value(), str)
     end
 
@@ -5451,7 +5948,9 @@ class __UTF8SetObject : ClassObject(
     #:
     #:
     method LexNE(str)
-        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /str & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(103))
+
         return UTF8::UTF8.LexNE(self.UTF8Value(), str)
     end
 
@@ -5465,6 +5964,7 @@ class __UTF8SetObject : ClassObject(
                    "\n__cset:", ::ximage(__cset), "\n__2bytedata:", ::ximage(__2bytedata),
                    "\n__3bytedata:", ::ximage(__3bytedata), "\n__4bytedata:", ::ximage(__4bytedata),
                    "\n__string_representation:", ::image(__string_representation.String()))
+
         #
         # we need to count to determine how we will set the flags on negation. As
         # we can represent the entire set by one flag __allcp and the total count
@@ -5489,10 +5989,12 @@ class __UTF8SetObject : ClassObject(
             every data ||:= !::sort(temp.__cset ++ temp.__2bytedata ++ temp.__3bytedata ++ temp.__4bytedata)
             temp.__string_representation := UTF8::UTF8.New((\temp.__negated & "-- All UTF-8 codepoints except (" || data || ") --") | data)
         }
+
         DebugPrint("temp:", ::image(temp), "\ntemp.__allcp:", ::image(temp.__allcp), "\ntemp.__negated:", ::image(temp.__negated),
                    "\ntemp.__cset:", ::ximage(temp.__cset), "\n__2bytedata:", ::ximage(temp.__2bytedata),
                    "\ntemp.__3bytedata:", ::ximage(temp.__3bytedata), "\ntemp.__4bytedata:", ::ximage(temp.__4bytedata),
                    "\ntemp.__string_representation:", ::image(temp.__string_representation.String()))
+
         return temp
     end
 
@@ -5510,10 +6012,14 @@ class __UTF8SetObject : ClassObject(
                 uset,                   #LV: temporary to hold result
                 temp                    #LV: temporary to hold unicon string
 
-        /val & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(114))
+
         local_val := UTF8::UTF8Set.__Coerce(val)
         uset := UTF8::UTF8Set.New("")
+
         __DebugPrint(, local_val, uset)
+
         #
         # We need to calulate the flags and values of the resultant UTFSet. There
         # are only a small number of valid combinations of flags that will occur
@@ -5538,6 +6044,7 @@ class __UTF8SetObject : ClassObject(
         #
         if (\self.__allcp | \local_val.__allcp) then {
             DebugPrint("(A)self.__allcp:", image(self.__allcp), " local_val.__allcp:", image(local_val.__allcp))
+
             if \self.__allcp & /local_val.__allcp then {
                 uset.__allcp := &null
                 uset.__negated := 1
@@ -5548,15 +6055,18 @@ class __UTF8SetObject : ClassObject(
                 temp := ""
                 every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
                 uset.__string_representation := UTF8::UTF8.New("-- All UTF-8 codepoints except (" || temp || ") --")
+
             } else {
                 uset.__allcp := &null
                 uset.__negated := &null
                 temp := ""
                 uset.__string_representation := UTF8.SpecialString(temp)
+
             }
         } else if /self.__allcp & /self.__negated & /local_val.__allcp & /local_val.__negated then {
             DebugPrint("(B)self.__allcp:", image(self.__allcp), " self.__negated:", image(self.__negated),
                        "\nlocal_val.__allcp:", image(local_val.__allcp), " local_val.__negated:", image(local_val.__negated))
+
             uset.__allcp := &null
             uset.__negated := &null
             uset.__cset := self.__cset -- local_val.__cset
@@ -5566,9 +6076,11 @@ class __UTF8SetObject : ClassObject(
             temp := ""
             every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
             uset.__string_representation := UTF8::UTF8.New(temp)
+
         } else if /self.__allcp & /local_val.__allcp & (\self.__negated | \local_val.__negated) then {
             DebugPrint("(C)self.__allcp:", image(self.__allcp), " self.__negated:", image(self.__negated),
                        "\nlocal_val.__allcp:", image(local_val.__allcp), " local_val.__negated:", image(local_val.__negated))
+
             if /self.__negated & \local_val.__negated then {
                 uset.__allcp := &null
                 uset.__negated := &null
@@ -5579,6 +6091,7 @@ class __UTF8SetObject : ClassObject(
                 temp := ""
                 every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
                 uset.__string_representation := UTF8::UTF8.New(temp)
+
             } else if \self.__negated & /local_val.__negated then {
                     uset.__allcp := &null
                     uset.__negated := 1
@@ -5589,6 +6102,7 @@ class __UTF8SetObject : ClassObject(
                     temp := ""
                     every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
                     uset.__string_representation := UTF8::UTF8.New("-- All UTF-8 codepoints except (" || temp || ") --")
+
             } else if \self.__negated & \local_val.__negated then {
                 uset.__allcp := &null
                 uset.__negated := &null
@@ -5599,6 +6113,7 @@ class __UTF8SetObject : ClassObject(
                 temp := ""
                 every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
                 uset.__string_representation := UTF8::UTF8.New(temp)
+
             }
         }
         __DebugPrint(, local_val, uset)
@@ -5619,7 +6134,9 @@ class __UTF8SetObject : ClassObject(
                 uset,                   #LV: temporary to hold result
                 temp                    #LV: temporary to hold unicon string
 
-        /val & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(103))
+
         local_val := UTF8::UTF8Set.__Coerce(val)
         uset := UTF8::UTF8Set.New("")
         #
@@ -5646,10 +6163,12 @@ class __UTF8SetObject : ClassObject(
         #
         if (\self.__allcp | \local_val.__allcp) then {
             DebugPrint("(A)self.__allcp:", image(self.__allcp), " local_val.__allcp:", image(local_val.__allcp))
+
             if \self.__allcp & \local_val.__allcp then {
                 uset.__allcp := 1
                 temp := "-- Full UTF-8 codepoint set (1,112,064 codepoints) --"
                 uset.__string_representation := UTF8.SpecialString(temp)
+
             } else if \self.__allcp then {
                 uset.__allcp := local_val.__allcp
                 uset.__negated := local_val.__negated
@@ -5658,6 +6177,7 @@ class __UTF8SetObject : ClassObject(
                 uset.__3bytedata := local_val.__3bytedata
                 uset.__4bytedata := local_val.__4bytedata
                 uset.__string_representation := local_val.__string_representation
+
             } else {
                 uset.__allcp := self.__allcp
                 uset.__negated := self.__negated
@@ -5666,10 +6186,12 @@ class __UTF8SetObject : ClassObject(
                 uset.__3bytedata := self.__3bytedata
                 uset.__4bytedata := self.__4bytedata
                 uset.__string_representation := self.__string_representation
+
             }
         } else if /self.__allcp & /self.__negated & /local_val.__allcp & /local_val.__negated then {
             DebugPrint("(B)self.__allcp:", image(self.__allcp), " self.__negated:", image(self.__negated),
                        "\nlocal_val.__allcp:", image(local_val.__allcp), " local_val.__negated:", image(local_val.__negated))
+
             uset.__allcp := &null
             uset.__negated := &null
             uset.__cset := self.__cset ** local_val.__cset
@@ -5679,9 +6201,11 @@ class __UTF8SetObject : ClassObject(
             temp := ""
             every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
             uset.__string_representation := UTF8::UTF8.New(temp)
+
         } else if /self.__allcp & /local_val.__allcp & (\self.__negated | \local_val.__negated) then {
             DebugPrint("(C)self.__allcp:", image(self.__allcp), " self.__negated:", image(self.__negated),
                        "\nlocal_val.__allcp:", image(local_val.__allcp), " local_val.__negated:", image(local_val.__negated))
+
             if /self.__negated & \local_val.__negated then {
                 uset.__allcp := &null
                 uset.__negated := &null
@@ -5692,6 +6216,7 @@ class __UTF8SetObject : ClassObject(
                 temp := ""
                 every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
                 uset.__string_representation := UTF8::UTF8.New(temp)
+
             } else if \self.__negated & /local_val.__negated then {
                     uset.__allcp := &null
                     uset.__negated := &null
@@ -5702,6 +6227,7 @@ class __UTF8SetObject : ClassObject(
                     temp := ""
                     every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
                     uset.__string_representation := UTF8::UTF8.New(temp)
+
             } else if \self.__negated & \local_val.__negated then {
                 uset.__allcp := &null
                 uset.__negated := 1
@@ -5715,6 +6241,7 @@ class __UTF8SetObject : ClassObject(
             }
         }
         __DebugPrint(, local_val, uset)
+
         return uset
     end
 
@@ -5732,10 +6259,14 @@ class __UTF8SetObject : ClassObject(
                 uset,                   #LV: temporary to hold result
                 temp                    #LV: temporary to hold unicon string
 
-        /val & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8Set object/value or object/value that can be converted to an UTF8Set object/value.")
+        /val & AbortMessage(114, keyword("&file", , 1), keyword("&line", , 1),
+                            UTF8::UTF8Set.__AuxMessage(103))
+
         local_val := UTF8::UTF8Set.__Coerce(val)
         uset := UTF8::UTF8Set.New("")
+
         __DebugPrint("Union: ", local_val, uset)
+
         #
         # We need to calulate the flags and values of the resultant UTFSet. There
         # are only a small number of valid combinations of flags that will occur
@@ -5760,29 +6291,17 @@ class __UTF8SetObject : ClassObject(
         #   &null | &null  |   1    |   1    |  >=0   |  >=0   |]    1   | &null  | if S.sets ** L.sets is empty
         #         |        |        |        |        |        |]  &null |   1    | S.sets ** L.sets if S.sets ** L.sets is not empty
         #   ------+--------+--------+--------+--------+--------++--------+--------+-----------
-        #         |        |        |        |        |        |]
-        #         |        |        |        |        |        |]
-        #         |        |        |        |        |        |]
-        #         |        |        |        |        |        |]
-        #         |        |        |        |        |        |]
-        #         |        |        |        |        |        |]
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
-        #
         #
         #
         if (\self.__allcp | \local_val.__allcp) then {
             DebugPrint("(A)self.__allcp:", image(self.__allcp), " local_val.__allcp:", image(local_val.__allcp))
+
             uset.__allcp := 1
+
         } else if /self.__allcp & /self.__negated & /local_val.__allcp & /local_val.__negated then {
             DebugPrint("(B)self.__allcp:", image(self.__allcp), " self.__negated:", image(self.__negated),
                        "\nlocal_val.__allcp:", image(local_val.__allcp), " local_val.__negated:", image(local_val.__negated))
+
             uset.__allcp := &null
             uset.__negated := &null
             uset.__cset := self.__cset ++ local_val.__cset
@@ -5792,9 +6311,11 @@ class __UTF8SetObject : ClassObject(
             temp := ""
             every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
             uset.__string_representation := UTF8::UTF8.New(temp)
+
         } else if /self.__allcp & /local_val.__allcp & (\self.__negated | \local_val.__negated) then {
             DebugPrint("(C)self.__allcp:", image(self.__allcp), " self.__negated:", image(self.__negated),
                        "\nlocal_val.__allcp:", image(local_val.__allcp), " local_val.__negated:", image(local_val.__negated))
+
             if /self.__negated & \local_val.__negated then {
                 if *(local_val.__cset -- self.__cset) +
                         *(local_val.__2bytedata -- self.__2bytedata) +
@@ -5804,6 +6325,7 @@ class __UTF8SetObject : ClassObject(
                     uset.__negated := &null
                     temp := "-- Full UTF-8 codepoint set (1,112,064 codepoints) --"
                     uset.__string_representation := UTF8.SpecialString(temp)
+
                 } else {
                     uset.__allcp := &null
                     uset.__negated := 1
@@ -5814,6 +6336,7 @@ class __UTF8SetObject : ClassObject(
                     temp := ""
                     every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
                     uset.__string_representation := UTF8::UTF8.New("-- All UTF-8 codepoints except (" || temp || ") --")
+
                 }
             } else if \self.__negated & /local_val.__negated then {
                 if *(self.__cset -- local_val.__cset) +
@@ -5824,6 +6347,7 @@ class __UTF8SetObject : ClassObject(
                     uset.__negated := &null
                     temp := "-- Full UTF-8 codepoint set (1,112,064 codepoints) --"
                     uset.__string_representation := UTF8.SpecialString(temp)
+
                 } else {
                     uset.__allcp := &null
                     uset.__negated := 1
@@ -5834,6 +6358,7 @@ class __UTF8SetObject : ClassObject(
                     temp := ""
                     every temp ||:= !::sort(uset.__cset ++ uset.__2bytedata ++ uset.__3bytedata ++ uset.__4bytedata)
                     uset.__string_representation := UTF8::UTF8.New("-- All UTF-8 codepoints except (" || temp || ") --")
+
                 }
             } else if \self.__negated & \local_val.__negated then {
                 if *(self.__cset ** local_val.__cset) +
@@ -5844,6 +6369,7 @@ class __UTF8SetObject : ClassObject(
                     uset.__negated := &null
                     temp := "-- Full UTF-8 codepoint set (1,112,064 codepoints) --"
                     uset.__string_representation := UTF8.SpecialString(temp)
+
                 } else {
                     uset.__allcp := &null
                     uset.__negated := 1
@@ -5857,7 +6383,9 @@ class __UTF8SetObject : ClassObject(
                 }
             }
         }
+
         __DebugPrint(, local_val, uset)
+
         return uset
     end
 
@@ -5884,17 +6412,22 @@ class __UTF8SetObject : ClassObject(
         DebugPrint("__2bytedata:", ::ximage(__2bytedata))
         DebugPrint("__3bytedata:", ::ximage(__3bytedata))
         DebugPrint("__4bytedata:", ::ximage(__4bytedata))
+
         if \__allcp then {
             DebugPrint("Producing all UTF-8 codepoints")
+
             every i := 0 to UTF8Set.MaxSize() - 1 do {
                 ch := UTF8.DecimalTo(i)
+
                 DebugPrint("codepoint ch:", ::image(ch), " ximage(ch.String()):", ::ximage(ch.String()))
                 DebugPrint("i:", i)
+
                 suspend ch
             }
         } else if \__negated then {
             DebugPrint("Producing negated UTF-8 codepoints")
             DebugPrint("Producing all UTF-8 codepoints")
+
             every i := 0 to UTF8Set.MaxSize() - 1 do {
                 ch := UTF8.DecimalTo(i)
                 if member(__cset | __2bytedata | __3bytedata | __4bytedata, ch.String()) then {
@@ -5905,29 +6438,38 @@ class __UTF8SetObject : ClassObject(
             }
         } else {
             DebugPrint("Producing available UTF-8 codepoints")
+
             lst := []
             lst := ::sort(\__cset)
             every ch := !\lst do {
                 DebugPrint("ch:", ::image(ch))
+
                 suspend UTF8.New(ch)
             }
+
             lst := []
             lst := ::sort(\__2bytedata)
             DebugPrint("lst:", ::ximage(lst))
+
             every ch := !\lst do {
                 DebugPrint("ch:", ::image(ch), " ximage(ch):", ::ximage(ch))
+
                 suspend UTF8.New(ch)
             }
+
             lst := []
             lst := ::sort(\__3bytedata)
             every ch := !\lst do {
                 DebugPrint("ch:", ::image(ch), " ximage(ch):", ::ximage(ch))
+
                 suspend UTF8.New(ch)
             }
+
             lst := []
             lst := ::sort(\__4bytedata)
             every ch := !\lst do {
                 DebugPrint("ch:", ::image(ch), " ximage(ch):", ::ximage(ch))
+
                 suspend UTF8.New(ch)
             }
         }
@@ -5951,7 +6493,9 @@ class __UTF8SetObject : ClassObject(
     method Subscript(i)
         local   temp                    #LV:
 
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          UTF8::UTF8Set.__AuxMessage(101))
+
         if /__negated then {
             if \__string_representation then {
                 return __string_representation.Subscript(i)
@@ -5984,16 +6528,19 @@ class __UTF8SetObject : ClassObject(
     #:
     #:@param ustr       this value should be something that can be coerced into
     #:@                 a UTF-8 string object
-    #:@return           a new UTF-8 string object whose data is the concatenation
+    #:@returns          a new UTF-8 string object whose data is the concatenation
     #:@                 of the data in the current object and the data in the
     #:@                 supplied object
-    #:@error            if the  supplied object cannot be coerced into a UTF-8
+    #:@aborts           if the  supplied object cannot be coerced into a UTF-8
     #:@                 string object
     #:
     method Concatenate(ustr)
-        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null\nMissing UTF8 object/value or object/value that can be converted to an UTF8 object/value.")
+        /ustr & AbortMessage(103, keyword("&file", , 1), keyword("&line", , 1),
+                             UTF8::UTF8Set.__AuxMessage(103))
+
         DebugPrint("self:", ::image(self))
         DebugPrint("ustr:", ::image(ustr))
+
         return UTF8::UTF8.Concatenate(self.UTF8Value(), ustr)
     end
 
@@ -6010,15 +6557,20 @@ class __UTF8SetObject : ClassObject(
     #:@                 negative, the value will be based on the size of the
     #:@                 the UTF-8 string. the same referencing rules as for
     #:@                 unicon/icon strings - RHS start for negative numbers
-    #:@return           a new UTF-8 object representing the codepoints found
+    #:@returns          a new UTF-8 object representing the codepoints found
     #:@                 between i and j positions
     #:@fails            if the values of i and j are outside the UTF-8 string
     #:@                 the method will fail
     #:
     method Subsection(i, j)
         DebugPrint("self:", image(self), " i:", i, " j:", j)
-        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /j & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+
+        /i & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          UTF8::UTF8Set.__AuxMessage(101))
+
+        /j & AbortMessage(101, keyword("&file", , 1), keyword("&line", , 1),
+                          UTF8::UTF8Set.__AuxMessage(101))
+
         return UTF8::UTF8.Subsection(self.UTF8Value(), i, j)
     end
 
@@ -6037,18 +6589,23 @@ class __UTF8SetObject : ClassObject(
         *c = 0 & return self
         DebugPrint("Size of c:", *c, "\n",
                    "image(c):", ::image(c))
+
         every val := !c do {
             if ::type(val) == ("string" | "cset" | "integer" | "real") | IsObject(val, "UTF8" | "UTF8Set") then {
                 val := UTF8::UTF8.__Coerce(val)
                 DebugPrint("val.String():", val.String())
+
                 every cp := val.ForEach().String() do {
                     DebugPrint("cp:", cp)
+
                     if \__allcp then {
                         if /__negated then {
                             DebugPrint("All codepoints in set, so is a member.")
+
                             break
                         } else {
                             DebugPrint("All codepoints not in set, so is not a member.")
+
                             found := &null
                             break break
                         }
@@ -6057,12 +6614,15 @@ class __UTF8SetObject : ClassObject(
                                    "ximage(__2bytedata):", ::ximage(__2bytedata), "\n",
                                    "ximage(__3bytedata):", ::ximage(__3bytedata), "\n",
                                    "ximage(__4bytedata):", ::ximage(__4bytedata))
+
                         if ::member(\__cset | \__2bytedata | \__3bytedata | \__4bytedata, cp) then {
                             if /__negated then {
                                 # do nothing
                                 DebugPrint("Member of one of the sets")
+
                             } else {
                                 DebugPrint("Not Member of one of the sets")
+
                                 found := &null
                                 break break
                             }
@@ -6070,6 +6630,7 @@ class __UTF8SetObject : ClassObject(
                             if /__negated then {
                                 found := &null
                                 DebugPrint("Not Found in any set")
+
                                 break break
                             } else {
                                 DebugPrint("Found in negated set")
@@ -6080,10 +6641,12 @@ class __UTF8SetObject : ClassObject(
             } else {
                 found := &null
                 DebugPrint("Not a value of any required form")
+
                 break
             }
         }
         DebugPrint("found:", ::ximage(found))
+
         return (\found & self) | fail
     end
 
@@ -6161,7 +6724,9 @@ initially(val)
     #
     if IsObjectOf(val, "UTF8Set") then {
         DebugPrint("val: ", val.String())
+
         variable("self", , 1) := val
+
     #
     # in the case of a normal unicon/icon cset value being supplied, we need to
     # ensure that the only characters existing in this cset are the 128 ASCII
@@ -6171,6 +6736,7 @@ initially(val)
     #
     } else if ::type(val) == "cset" & *(val -- &ascii) = 0 then {
         DebugPrint("type of val:", ::type(val), " and covers the ASCII characters.")
+
         #
         # the characters that need to be added to the __cset field are those found
         # in the supplied cset value. To obtain these we convert the cset to a string
@@ -6183,6 +6749,7 @@ initially(val)
         __3bytedata := ::set([])
         __4bytedata := ::set([])
         __string_representation := UTF8::UTF8.SpecialString(::string(val))
+
     #
     ################################ IMPLEMENTATION NOTE########################
     #
@@ -6204,6 +6771,7 @@ initially(val)
         # we will use that value.
         #
         DebugPrint("type of val:", ::type(val), " value of val: ", ::ximage(val))
+
         if temp := \UTF8::UTF8Set.All() then {
             #
             ################################ IMPLEMENTATION NOTE########################
@@ -6215,6 +6783,7 @@ initially(val)
             # the call stack is not as it appears within this code.
             #
             variable("self", , 1) := temp
+
         #
         # Otherwise we will create it
         #
@@ -6226,6 +6795,7 @@ initially(val)
             __allcp := 1
             __string_representation := UTF8::UTF8.New("-- Full UTF-8 codepoint set (1,112,064 codepoints) --")
         }
+
     #
     # if the value supplied is an integer or a real then we convert the value
     # first to a Standard Unicon cset to remove any duplicate characters and then
@@ -6236,12 +6806,14 @@ initially(val)
     #
     } else if ::type(val) == ("integer" | "real") then {
         DebugPrint("type of val:", ::type(val), " value of val: ", ::ximage(val))
+
         data := ::string(::cset(val))
         __cset := ::set([:!data:])
         __2bytedata := ::set([])
         __3bytedata := ::set([])
         __4bytedata := ::set([])
         __string_representation := UTF8::UTF8.New(data)
+
     #
     # now we will deal with all cset values that have members that are in the upper
     # 128 bytes. We need to extract any of the lower 128 ASCII values and then
@@ -6251,20 +6823,25 @@ initially(val)
     #
     } else if ::type(val) == "cset" then {
         DebugPrint("val:", ::ximage(val))
+
         #
         # extract the relevant ascii values in the cset
         temp := ::string(val ** &ascii)
         DebugPrint("__cset:", ::ximage(temp))
+
         __cset := ::set([:!temp:])
+
         #
         # this extracts the upper byte values and uses list comprehension to
         # extract and convert each of the bytes to a proper codepoint
         #
         data := ::string(val -- &ascii)
         DebugPrint("data:", ::ximage(data))
+
         __2bytedata := ::set([:UTF8::UTF8.ByteTranslate(!data):])
         __3bytedata := ::set([])
         __4bytedata := ::set([])
+
         #
         # to create the appropriate string representation, we need the sorted union
         # of the __cset and __2bytedata sets as a Unicon string.
@@ -6273,6 +6850,7 @@ initially(val)
         every temp ||:= !::sort(__cset ++ __2bytedata)
         DebugPrint("__cset ++ __2bytedata:", ::ximage(temp))
         __string_representation := UTF8::UTF8.New(temp)
+
     #
     # in the case of unicon strings that consist of UTF8 codepoints or if it is
     # a UTF8 object value, we will simply coerce the value to the a UTF8 object
@@ -6281,13 +6859,16 @@ initially(val)
     #
     } else if ::type(val) == "string" | IsObjectOf(val, "UTF8") then {
         DebugPrint("level(", &level, ") type of val:", ::type(val), " value of val: ", ::image(val))
+
         val := UTF8::UTF8.__Coerce(val)
         DebugPrint("level(", &level, ") classname of val:", ::classname(val) | "none", " value of val: ", ::image(val))
+
         __cset := ::set([])
         __2bytedata := ::set([])
         __3bytedata := ::set([])
         __4bytedata := ::set([])
         DebugPrint("\n__cset:", ::ximage(__cset), "\n__2bytedata:", ::ximage(__2bytedata), "\n__3bytedata:", ::ximage(__3bytedata), "\n__4bytedata:", ::ximage(__4bytedata))
+
         every data := val.ForEach().String() do {
             case *data of {
                 1 : {
@@ -6307,11 +6888,13 @@ initially(val)
         temp := ""
         every temp ||:= !::sort(__cset ++ __2bytedata ++ __3bytedata ++ __4bytedata)
         __string_representation := UTF8::UTF8.New(temp)
+
     #
     # if we reach here then the value supplied cannot be converted to a UTF8Set
     # so we perform a runtime abort
     #
     } else {
-        AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        AbortMessage(104, keyword("&file", , 1), keyword("&line", , 1),
+                     UTF8::UTF8Set.__AuxMessage(104, 2))
     }
 end

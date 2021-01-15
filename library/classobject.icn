@@ -297,20 +297,66 @@ class ClassClass : ErrorSystem(
         # problems in the future, the test is still being made.
         #
         /DebugPrint & Off()
+
         #
         #
         #
         while class_Identifier := self.ClassCalling(index +:= 1) do {
             DebugPrint("Class Identifier: ", class_Identifier, " index: ", index)
         }
+
         #
         # The following statement will normally be executed based on what debugging
         # has been turned on or off elsewhere in the system and not on the initialisation
         # process above in this method
         #
         DebugPrint("return value: index:", index, " - ", image(class_Identifier))
+
         return class_Identifier
     end
+
+    #MD:
+    #: __AuxMessage(errorno, messageno)
+    #:
+    #:
+    method __AuxMessage(errorno, messageno)
+        static  ErrorMessages           #SV: table holding error messages for error
+                                        #:   numbers used in UFT8/UTF8Set aborts
+
+        initial {
+            ErrorMessages := ::table()
+
+            ErrorMessages[101 || "-" || 1] := "\noffending value: &null"
+            ErrorMessages[101 || "-" || 2] := "\noffending value: "
+            ErrorMessages[101 || "-" || 3] := "\noffending value for i: "
+            ErrorMessages[101 || "-" || 4] := "\noffending value for j: "
+            ErrorMessages[101 || "-" || 5] := "\noffending value for i has type of: "
+            ErrorMessages[101 || "-" || 6] := "\noffending value for i is less than or equal to 0: "
+            ErrorMessages[101 || "-" || 7] := "\nlength of mapping strings are not equal: "
+            ErrorMessages[102 || "-" || 1] := "\noffending value: &null"
+            ErrorMessages[102 || "-" || 2] := "\noffending value: "
+            ErrorMessages[103 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing Unicon string value or value that can be converted to an Unicon string value."
+            ErrorMessages[103 || "-" || 2] := "\noffending value: "
+            ErrorMessages[103 || "-" || 3] := "\noffending value: &null_
+                                               \nMissing Unicon string value"
+            ErrorMessages[103 || "-" || 4] := "\noffending value: &null_
+                                               \nMissing Unicon integer value or Unicon string value"
+            ErrorMessages[104 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing Unicon cset value or value that can be converted to an Unicon cset value."
+            ErrorMessages[104 || "-" || 2] := "\noffending value: &null"
+            ErrorMessages[110 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing Unicon string or list value or value that can be converted to an Unicon string or list value."
+            ErrorMessages[113 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing Unicon string or list value or value that can be converted to an Unicon string or list value."
+            ErrorMessages[120 || "-" || 1] := "\noffending value: &null_
+                                               \nMissing Unicon cset, set or table value or value that can be converted to an Unicon cset, set or table value."
+        }
+        /messageno := 1
+        return \ErrorMessages[errorno || "-" || messageno] | ""
+    end
+
+
 
     #MD:
     #:
@@ -329,22 +375,27 @@ class ClassClass : ErrorSystem(
         # should have been done in a subclass of this class.
         #
         /DebugPrint & Off()
+
         #
         #
         #
         object_Identifier := self.__InitClass()
+
         #
         # we obtain the name of the procedure that is the code for this object_identifier
         #
         object_name := ::get_active_name(obj)
         package_name := CallingComponents(object_name)[4]
+
         DebugPrint("object is:", ::image(obj), " Object Identifier: ", object_Identifier, " object_name: ", image(object_name))
         DebugPrint("package name is ", package_name)
+
         #__operator_overload_error_messages[object_name] := object_Identifier
         ClassObject::ClassClass.__ObjectToClass[object_Identifier] := object_Identifier
         ClassObject::ClassClass.__ObjectToClass[object_name] := object_Identifier
         ClassObject::ClassClass.__ObjectToClass[object_name[::match(package_name || "__",object_name):0]] := object_Identifier
         ClassObject::ClassClass.__ObjectToClass[::trim(object_name[::match(package_name || "__",object_name):0], "_", 0)] := object_Identifier
+
         #
         # if debugging is On, we want see the three different keys for objects
         # with the associated object Identifier. Otherwise, this is a null action
@@ -355,6 +406,7 @@ class ClassClass : ErrorSystem(
             "\n__ObjectToClass[", object_name, "]: ", ::image(object_Identifier),
             "\n__ObjectToClass[", object_name[::match(package_name || "__",object_name):0], "]: ", ::image(object_Identifier),
             "\n__ObjectToClass[", ::trim(object_name[::match(package_name || "__",object_name):0], "_", 0), "]: ", ::image(object_Identifier))
+
         if ::type(obj) == "procedure" then {
             ClassObject::ClassClass.__ClassToObject[object_Identifier] := obj
             #
@@ -364,8 +416,10 @@ class ClassClass : ErrorSystem(
             #
             DebugPrint(
                 "__ClassToObject[", ::image(object_Identifier), "]: ", ::image(obj))
+
         } else if procedure_name := ::classname(obj) then {
             ClassObject::ClassClass.__ClassToObject[object_Identifier] := ::proc(procedure_name)
+
             #
             # if debugging is On, we want see the key for class name
             # with the associated object Identifier (or class identifier).
@@ -373,8 +427,10 @@ class ClassClass : ErrorSystem(
             #
             DebugPrint(
                 "__ClassToObject[", ::image(object_Identifier), "]: ::proc(", ::image(procedure_name), "): ", ::image(::proc(procedure_name)))
+
         } else if ::type(obj) == "string" then {
             ClassObject::ClassClass.__ClassToObject[object_Identifier] := ::proc(obj)
+
             #
             # if debugging is On, we want see the key for the string and the associated
             # procedure/function with the associated object Identifier (or class identifier).
@@ -382,9 +438,11 @@ class ClassClass : ErrorSystem(
             #
             DebugPrint(
                 "__ClassToObject[", ::image(object_Identifier), "]: ::proc(", ::image(obj), "): ", ::image(::proc(obj)))
+
         } else {
             self.StopMessage("Unable to set the Class object creator:", ::ximage(obj))
         }
+
         #
         # if debugging is On, we want see the three different keys for objects
         # with the associated object Identifier. Otherwise, this is a null action
@@ -397,7 +455,9 @@ class ClassClass : ErrorSystem(
             "): ",
             ::image(::proc(obj)),
             " New: ", ::image(::proc(New)))
+
         self.New := ClassObject::ClassClass.__ClassToObject[object_Identifier]
+
         #
         # if debugging is On, we want see the three different keys for objects
         # with the associated object Identifier. Otherwise, this is a null action
@@ -410,6 +470,7 @@ class ClassClass : ErrorSystem(
             "): ",
             ::image(::proc(obj)),
             " New: ", ::image(::proc(New)))
+
         Off()
         return self
     end
@@ -421,6 +482,7 @@ class ClassClass : ErrorSystem(
                                         #:   for the current object
 
         name := ::classname(obj)
+
         #
         # using the system classname, obtain the classname of the class that
         # obj is associated with
@@ -449,12 +511,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 + local_val2
     end
 
@@ -465,12 +536,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 / local_val2
     end
 
@@ -481,12 +561,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102 ,2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 - local_val2
     end
 
@@ -497,13 +586,23 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 % local_val2
+
     end
 
     #MD:
@@ -513,12 +612,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 * local_val2
     end
 
@@ -528,9 +636,14 @@ class ClassClass : ErrorSystem(
     method Negate(val)
         local   local_val               #LV:
 
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         local_val := Numeric(val)
-        /local_val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val))
+
+        /local_val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                  __AuxMessage(102, 2), image(val))
+
         return -local_val
     end
 
@@ -541,9 +654,14 @@ class ClassClass : ErrorSystem(
     method UnaryPlus(val)
         local   local_val               #LV:
 
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         local_val := Numeric(val)
-        /local_val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val))
+
+        /local_val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                  __AuxMessage(102, 2), image(val))
+
         return + local_val
     end
 
@@ -554,12 +672,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 ^ local_val2
     end
 
@@ -591,12 +718,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 = local_val2
     end
 
@@ -614,12 +750,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 >= local_val2
     end
 
@@ -637,12 +782,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 > local_val2
     end
 
@@ -660,12 +814,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 <= local_val2
     end
 
@@ -683,12 +846,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 < local_val2
     end
 
@@ -706,12 +878,21 @@ class ClassClass : ErrorSystem(
         local   local_val1,             #LV:
                 local_val2              #LV:
 
-        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
-        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
+        /val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                             __AuxMessage(102))
+
         local_val1 := Numeric(val1)
         local_val2 := Numeric(val2)
-        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val1))
-        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: ", image(val2))
+
+        /local_val1 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val1))
+
+        /local_val2 & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                                   __AuxMessage(102, 2), image(val2))
+
         return local_val1 ~= local_val2
     end
 
@@ -769,7 +950,6 @@ class ClassClass : ErrorSystem(
         # will produce an Unicon numeric value. Otherwise, simply fail. This will
         # use the standard Unicon function numeric()
         #
-
         if HasMethod(val, "String") then {
             return ::numeric(val.String())
         }
@@ -789,7 +969,6 @@ class ClassClass : ErrorSystem(
         # will produce an Unicon numeric value. Otherwise, simply fail. This will
         # use the standard Unicon function numeric()
         #
-
         if HasMethod(val, "String") then {
             return ::real(val.String())
         }
@@ -835,27 +1014,32 @@ initially()
         # will be a null operation.
         #
         Execute(ClassObject::ClassObject)
+
         #
         # By default, we will turn the debugging facilities off for this class
         #
         Off()
+
         #
         # we now set this class name to be the object itself, so that no more
         # objects of this class are produced. This is a singleton class.
         #
         ClassObject::ClassClass := self
+
         #
         # since this class does not have an associated object class, we will set
         # the inherited class variable New to the __NewNotSet procedure which is
         # available in the ErrorSystem file.
         #
         ClassObject::ClassClass.New := ::proc(__NewNotSet)
+
         #
         # We initialise the __ObjectToClass and __ClassToObject class variables
         # to the required tables.
         #
         /ClassObject::ClassClass.__ClassToObject := ::table()
         /ClassObject::ClassClass.__ObjectToClass := ::table()
+
         #
         # we now need to initialise the __operator_overload_error_message to the
         # required tables#
@@ -897,6 +1081,7 @@ class ClassObject : ErrorSystem(
     method __call_by_method_name(methname, params[])
         DebugPrint("methname: ", methname, " --> ", ::image(\self.__m[methname]))
         DebugPrint("params[]:", ::image(params))
+
         if \self.__m[methname] then {
             return self.__m[methname] ! ::push(params, self)
         } else if \__operator_overload then {
@@ -937,6 +1122,7 @@ class ClassObject : ErrorSystem(
                                         #:   message details
 
         err_message_info := \ClassObject::ClassClass.__operator_overload_error_messages[methname]
+
         AbortMessage(err_message_info,
                      keyword("&file",,3),
                      keyword("&line",,3),
@@ -981,7 +1167,9 @@ class ClassObject : ErrorSystem(
     #: Addition(val)
     #:
     method Addition(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Addition(self, val)
     end
 
@@ -989,7 +1177,9 @@ class ClassObject : ErrorSystem(
     #: Divide(val)
     #:
     method Divide(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Divide(self, val)
     end
 
@@ -997,7 +1187,9 @@ class ClassObject : ErrorSystem(
     #: Minus(val)
     #:
     method Minus(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Minus(self, val)
     end
 
@@ -1005,7 +1197,9 @@ class ClassObject : ErrorSystem(
     #: Modulus(val)
     #:
     method Modulus(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Modulus(self, val)
     end
 
@@ -1013,7 +1207,9 @@ class ClassObject : ErrorSystem(
     #: Multiply(val)
     #:
     method Multiply(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Multiply(self, val)
     end
 
@@ -1036,7 +1232,9 @@ class ClassObject : ErrorSystem(
     #: Power(val)
     #:
     method Power(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Power(self, val)
     end
 
@@ -1061,7 +1259,9 @@ class ClassObject : ErrorSystem(
     #: numerically equal or failure if the test fails.
     #:
     method Equals(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Equals(self, val)
     end
 
@@ -1072,7 +1272,9 @@ class ClassObject : ErrorSystem(
     #: numerically equal to or greater than the supplied or failure if the test fails.
     #:
     method GTorEqual(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.GTorEqual(self, val)
     end
 
@@ -1083,7 +1285,9 @@ class ClassObject : ErrorSystem(
     #: numerically greater than the supplied or failure if the test fails.
     #:
     method Greater(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Greater(self, val)
     end
 
@@ -1094,7 +1298,9 @@ class ClassObject : ErrorSystem(
     #: numerically less than or equal to the supplied or failure if the test fails.
     #:
     method LTorEqual(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.LTorEqual(self, val)
     end
 
@@ -1105,7 +1311,9 @@ class ClassObject : ErrorSystem(
     #: numerically less than the supplied or failure if the test fails.
     #:
     method Less(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Less(self, val)
     end
 
@@ -1116,7 +1324,9 @@ class ClassObject : ErrorSystem(
     #: numerically not equal to the supplied or failure if the test fails.
     #:
     method Nequal(val)
-        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1), "\noffending value: &null")
+        /val & AbortMessage(102, keyword("&file", , 1), keyword("&line", , 1),
+                            __AuxMessage(102))
+
         return ClassObject::ClassClass.Nequal(self, val)
     end
 
@@ -1582,6 +1792,7 @@ initially()
         # will be a null operation.
         #
         Execute(ErrorSystem::ErrorSystem)
+
         #
         # We need to ensure that the CLassClass class has been initialised.
         #
@@ -1589,15 +1800,18 @@ initially()
         if tmp[3] ~== "initially" & tmp[2] ~== "ClassClass" then {
             ClassObject::ClassClass()
         }
+
         #
         # By default, we will turn the debugging facilities off for this class
         #
         Off()
+
         #
         # we now set this class name to be the object itself, so that no more
         # objects of this unicon class are created. This is a singleton class.
         #
         ClassObject::ClassObject := self
+
         #
         # Make the operator overlaod facilities available for all subclasses
         # of this class
@@ -1700,6 +1914,7 @@ procedure IsObject(value_tested)
     # otherwise the object_identifier will retain the &null value
     #
     ::image(value_tested) ? { ="object" & object_identifier := ::trim(::tab(0))}
+
     #
     # on the basis that there is an object_identifier, we obtain the system classname
     # and return this as the result
@@ -1731,13 +1946,16 @@ procedure IsObjectOf(value, expectedtypes[])
     # determine if this value is an object of some kind and get its system name
     # if it is not an object, object_identifer will retain the &null value
     #
-    ErrorSystem::ErrorSystem.DebugPrint("value", ::image(value), " *expectedtypes:", *expectedtypes, " expectedtypes:", ::image(expectedtypes))
+    ErrorSystem::ErrorSystem.DebugPrint("value", ::image(value), " *expectedtypes:",
+                                        *expectedtypes, " expectedtypes:", ::image(expectedtypes))
     ::image(value) ? { ="object" & object_identifier := ::trim(::tab(0))}
+
     #
     # if the value is an object of some kind, we will get the list of applicable
     # superclasses. otherwise superclasses will retain the initial empty list value
     #
     superclasses := SuperClass(value)
+
     #
     # for each element of the superclasses that have been found, we need the
     # translation of associated class to class. If there is no such translation,
@@ -1746,7 +1964,9 @@ procedure IsObjectOf(value, expectedtypes[])
     every current_superclass := !superclasses do {
         ::put(parentclass_list, \ClassObject::ClassClass.__ObjectToClass[current_superclass] | current_superclass)
     }
+
     ::push(parentclass_list, ::classname(value) & value.ClassName())
+
     #
     # if this value's class matches any of the given expected classes then return
     # the value, otherwise fail
@@ -1780,6 +2000,7 @@ procedure ObjectProperties(object_or_classname)
         # we obtain the system type name for this value
         #
         class_name := ::proc(object_or_classname, 0)
+
         #
         # if it is anything other than a procedure, we will set the class_name
         # to the &null value
@@ -1787,12 +2008,14 @@ procedure ObjectProperties(object_or_classname)
         if ::type(class_name) ~== "procedure" then {
             class_name := &null
         }
+
     #
     # otherwise, we have a value that is possibly an object or class
     #
     } else {
         class_name := (IsObject(object_or_classname) & object_or_classname)
     }
+
     if \class_name then {
         #
         # we suspend this procedure for each found field as a 2 element list, the
@@ -1800,6 +2023,7 @@ procedure ObjectProperties(object_or_classname)
         # indicator "member"
         #
         suspend [!::membernames(class_name), "member"]
+
         #
         # we suspend this procedure for each found method as a 2 element list, the
         # first element being the method name and the second being the type
@@ -1948,6 +2172,7 @@ procedure SuperClass(this_object)
         # only interested in those fields which do not hold procedure values.
         #
         object_oprec := ::oprec(this_object)
+
         #
         # initialise each of superclass_list and fieldname_list to their own
         # empty list. These must be kept seperate due to the pointer semeantics
@@ -1955,12 +2180,14 @@ procedure SuperClass(this_object)
         #
         superclass_list := []
         fieldname_list := []
+
         #
         # we need to know each field name from the oprec record. These field names
         # are the method names and the superclass names as defined in the class
         # definition under the current implemtation for classes in unicon.
         #
         every ::put(fieldname_list, ::fieldnames(object_oprec))
+
         #
         # to check if one of the field names is a superclass name, for each
         # element of fieldname_list, we look at the corresponding index in the
