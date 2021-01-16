@@ -50,8 +50,9 @@ procedure trace(message[])
 
 
 package ClassObject
-class ClassClass : ClassObject
+class ClassClass : ErrorSystem
     method __InitClass()
+    method __AuxMessage(errorno, messageno)
     method SetClass(obj)
 
     method Addition(val1, val2)
